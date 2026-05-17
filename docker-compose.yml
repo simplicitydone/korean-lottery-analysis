@@ -1,0 +1,10 @@
+version: '3'
+services:
+  lotto:
+    build: .
+    container_name: lotto
+    restart: always
+    ports:
+      - "3004:5000"
+    volumes:
+      - ./lottery.db:/app/lottery.db

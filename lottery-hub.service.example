@@ -1,0 +1,14 @@
+[Unit]
+Description=Lottery Pattern Hub
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/u/pro/3004_lotto
+EnvironmentFile=/home/u/pro/3004_lotto/.env
+ExecStart=/home/u/pro/3004_lotto/.venv/bin/python /home/u/pro/3004_lotto/serve.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
