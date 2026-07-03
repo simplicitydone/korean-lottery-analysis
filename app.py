@@ -2,6 +2,7 @@ from functools import wraps
 import threading
 import sqlite3
 from flask import Flask, jsonify, request, send_from_directory, session
+from werkzeug.exceptions import HTTPException
 import os
 import logging
 from predictor_engine import LottoPredictor
@@ -181,8 +182,14 @@ def index():
 
 @app.errorhandler(Exception)
 def handle_exception(e):
-    log.error(f"Unhandled Exception: {e}")
-    return jsonify({"error": "데이터 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.", "details": str(e)}), 500
+    # HTTP errors (404 from bot scans, 405, ...) pass through with their own
+    # status instead of being logged as 500-level unhandled exceptions.
+    if isinstance(e, HTTPException):
+        if e.code >= 500:
+            log.error(f"HTTP {e.code}: {e.description}")
+        return jsonify({"error": e.name, "details": e.description}), e.code
+    log.exception(f"Unhandled Exception: {e}")
+    return jsonify({"error": "데이터 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."}), 500
 
 @app.route("/api/status")
 def get_status():

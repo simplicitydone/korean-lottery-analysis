@@ -24,8 +24,10 @@ import numpy as np
 log = logging.getLogger("AutoUpdater")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
-LOTTO_URL   = "https://www.dhlottery.co.kr/gameResult.do?method=byWin&drwNo={drw_no}"
-PENSION_URL = "https://www.dhlottery.co.kr/gameResult.do?method=byWin720&Round={drw_no}"
+# dhlottery.co.kr redesigned in 2026-05: the old gameResult.do pages redirect to
+# /errorPage. The new site exposes JSON endpoints with draw-number range params.
+LOTTO_URL   = "https://www.dhlottery.co.kr/lt645/selectPstLt645Info.do"
+PENSION_URL = "https://www.dhlottery.co.kr/pt720/selectPstPt720Info.do"
 
 HEADERS = {
     "User-Agent": (
@@ -40,102 +42,79 @@ HEADERS = {
 
 # ═══════════════════════════ Scraping Functions ════════════════════════════
 
+def _ymd_to_date(ymd: str) -> str:
+    """'20260627' → '2026-06-27'."""
+    return f"{ymd[:4]}-{ymd[4:6]}-{ymd[6:8]}"
+
+
 def fetch_lotto(draw_no: int) -> dict | None:
-    """Scrape one lotto draw from dhlottery.co.kr.
+    """Fetch one lotto draw from the dhlottery JSON API.
     Returns {draw_no, draw_date, win1..6, bonus} or None.
     """
     try:
-        r = requests.get(LOTTO_URL.format(drw_no=draw_no), headers=HEADERS, timeout=15)
-        html = r.text
-        
-        # 1. Winning Numbers
-        nums = re.findall(r'<span class="ball_645 lball_(\d+)">\s*(\d+)\s*</span>', html)
-        if nums:
-            nums = [int(p[1]) for p in nums]
-        else:
-            nums = re.findall(r'<span\s+[^>]*class=["\']ball_645[^"\']*["\'][^>]*>\s*(\d+)\s*</span>', html)
-            if not nums:
-                nums = re.findall(r'<strong[^>]*class=["\']num[^"\']*["\'][^>]*>(\d+)</strong>', html)
-            nums = [int(n) for n in nums]
-
-        if not nums or len(nums) < 7:
-            log.warning(f"Could not parse lotto draw {draw_no}: found {len(nums) if nums else 0} numbers")
+        r = requests.get(LOTTO_URL, headers=HEADERS, timeout=15,
+                         params={"srchStrLtEpsd": draw_no, "srchEndLtEpsd": draw_no})
+        rows = (r.json().get("data") or {}).get("list") or []
+        # The API returns the latest draw when the requested one doesn't exist yet.
+        row = next((x for x in rows if x.get("ltEpsd") == draw_no), None)
+        if not row:
+            log.warning(f"lotto draw {draw_no} not in API response "
+                        f"(latest available: {rows[0]['ltEpsd'] if rows else 'none'})")
             return None
 
-        # 2. Draw Date - Look specifically for the line with "추첨"
-        date_m = re.search(r'\((\d{4})[년.\-]\s*(\d{1,2})[월.\-]\s*(\d{1,2})[^\d]*추첨\)', html)
-        if not date_m:
-            date_m = re.search(r'(\d{4})[년.\-](\d{1,2})[월.\-](\d{1,2})', html)
-        
-        draw_date = (f"{date_m.group(1)}-{int(date_m.group(2)):02d}-{int(date_m.group(3)):02d}"
-                     if date_m else
-                     str(datetime.date(2002, 12, 7) + datetime.timedelta(weeks=draw_no - 1)))
-        
+        nums = [row[f"tm{i}WnNo"] for i in range(1, 7)]
+        bonus = row["bnsWnNo"]
+        if any(n is None for n in nums) or bonus is None:
+            log.warning(f"lotto draw {draw_no}: incomplete numbers in API response")
+            return None
+
+        draw_date = (_ymd_to_date(str(row["ltRflYmd"])) if row.get("ltRflYmd")
+                     else str(datetime.date(2002, 12, 7) + datetime.timedelta(weeks=draw_no - 1)))
+
         return {"draw_no": draw_no, "draw_date": draw_date,
-                "win1": nums[0], "win2": nums[1], "win3": nums[2],
-                "win4": nums[3], "win5": nums[4], "win6": nums[5], "bonus": nums[6]}
+                "win1": int(nums[0]), "win2": int(nums[1]), "win3": int(nums[2]),
+                "win4": int(nums[3]), "win5": int(nums[4]), "win6": int(nums[5]),
+                "bonus": int(bonus)}
     except Exception as e:
         log.error(f"fetch_lotto({draw_no}): {e}")
         return None
 
 
 def fetch_pension(draw_no: int) -> list[dict] | None:
-    """Scrape one pension draw from dhlottery.co.kr.
-    Returns a list of records (usually 1st prize + Bonus) or None.
+    """Fetch one pension (연금복권720+) draw from the dhlottery JSON API.
+    Returns a list of records (1st prize + Bonus) or None.
+
+    API rows: wnSqNo 1 = 1st prize (wnBndNo = 조, wnRnkVl = 6 digits, may have
+    leading zeros), wnSqNo 21 = bonus (wnRnkVl = 6 digits).
     """
     try:
-        r = requests.get(PENSION_URL.format(drw_no=draw_no), headers=HEADERS, timeout=15)
-        html = r.text
-
-        # 2. Draw Date - More specific to avoid system date
-        # Search within common date containers for DHLottery
-        date_section = re.search(r'class="desc">.*?</h4>', html, re.DOTALL)
-        date_text = date_section.group(0) if date_section else html
-        
-        date_m = re.search(r'\((\d{4})[년.\-]\s*(\d{1,2})[월.\-]\s*(\d{1,2})[^\d]*추첨\)', date_text)
-        if not date_m:
-            date_m = re.search(r'(\d{4})[년.\-]\s*(\d{1,2})[월.\-]\s*(\d{1,2})', date_text)
-            
-        if not date_m:
-            # Absolute fallback based on draw week
-            base_date = datetime.date(2020, 5, 7)
-            draw_date = str(base_date + datetime.timedelta(weeks=draw_no - 1))
-        else:
-            draw_date = f"{date_m.group(1)}-{int(date_m.group(2)):02d}-{int(date_m.group(3)):02d}"
-
-        # 2. 1st Prize Group
-        gm = re.search(r'<span>(\d)</span>\s*조', html, re.DOTALL)
-        if not gm:
-            gm = re.search(r'(\d)\s*조', html, re.DOTALL)
-        
-        # 3. 1st Prize Digits
-        # Using a more robust scan for the large number displays
-        nums_main = re.findall(r'<span>(\d)</span>', re.search(r'win720_num.*?</div>', html, re.DOTALL).group(0)) if "win720_num" in html else []
-        if not nums_main:
-            dm = re.search(r'1등.*?(\d)(\d)(\d)(\d)(\d)(\d)', html, re.DOTALL)
-            if dm: nums_main = [int(dm.group(i)) for i in range(1, 7)]
+        r = requests.get(PENSION_URL, headers=HEADERS, timeout=15,
+                         params={"srchStrPsltEpsd": draw_no, "srchEndPsltEpsd": draw_no})
+        rows = (r.json().get("data") or {}).get("result") or []
+        # The API returns the latest draw when the requested one doesn't exist yet.
+        rows = [x for x in rows if x.get("psltEpsd") == draw_no]
+        if not rows:
+            log.warning(f"pension draw {draw_no} not in API response")
+            return None
 
         results = []
-        if gm and nums_main and len(nums_main) == 6:
+        for row in rows:
+            sq = row.get("wnSqNo")
+            if sq not in (1, 21):
+                continue
+            digits = str(row.get("wnRnkVl") or "")
+            if len(digits) != 6 or not digits.isdigit():
+                log.warning(f"pension draw {draw_no} wnSqNo={sq}: bad digits {digits!r}")
+                continue
+            draw_date = (_ymd_to_date(str(row["psltRflYmd"])) if row.get("psltRflYmd")
+                         else str(datetime.date(2020, 5, 7) + datetime.timedelta(weeks=draw_no - 1)))
+            is_bonus = 1 if sq == 21 else 0
+            group_no = 0 if is_bonus else int(row.get("wnBndNo") or 0)
             results.append({
-                "draw_no": draw_no, "draw_date": draw_date, "group_no": int(gm.group(1)),
-                "n1": int(nums_main[0]), "n2": int(nums_main[1]), "n3": int(nums_main[2]),
-                "n4": int(nums_main[3]), "n5": int(nums_main[4]), "n6": int(nums_main[5]),
-                "is_bonus": 0
-            })
-
-        # 4. Bonus Digits
-        nums_bonus = re.findall(r'<span>(\d)</span>', re.search(r'bonus_num.*?</div>', html, re.DOTALL).group(0)) if "bonus_num" in html else []
-        if not nums_bonus:
-            dm = re.search(r'보너스.*?(\d)(\d)(\d)(\d)(\d)(\d)', html, re.DOTALL)
-            if dm: nums_bonus = [int(dm.group(i)) for i in range(1, 7)]
-
-        if nums_bonus and len(nums_bonus) == 6:
-            results.append({
-                "draw_no": draw_no, "draw_date": draw_date, "group_no": 0,
-                "n1": int(nums_bonus[0]), "n2": int(nums_bonus[1]), "n3": int(nums_bonus[2]),
-                "n4": int(nums_bonus[3]), "n5": int(nums_bonus[4]), "n6": int(nums_bonus[5]),
-                "is_bonus": 1
+                "draw_no": draw_no, "draw_date": draw_date, "group_no": group_no,
+                "n1": int(digits[0]), "n2": int(digits[1]), "n3": int(digits[2]),
+                "n4": int(digits[3]), "n5": int(digits[4]), "n6": int(digits[5]),
+                "is_bonus": is_bonus
             })
 
         return results if results else None
@@ -335,6 +314,7 @@ class LotteryAutoUpdater:
     PENSION_CHECK_DAY = 4   # Friday
     CHECK_HOUR        = 10  # 10:00
     MAX_RETRIES       = 3
+    MAX_CATCHUP       = 100  # startup catch-up: max consecutive draws to backfill
 
     def __init__(self, db_path: str, on_lotto_update=None, on_pension_update=None):
         self.db_path = db_path
@@ -358,9 +338,9 @@ class LotteryAutoUpdater:
         """Catch up on missed draws, then schedule next weekly check."""
         init_accuracy_table(self.db_path)
         try:
-            # Lotto catch-up (up to MAX_RETRIES draws ahead)
+            # Lotto catch-up (until no newer draw is available)
             latest = get_latest_draw_no(self.db_path, "lotto")
-            for delta in range(1, self.MAX_RETRIES + 1):
+            for delta in range(1, self.MAX_CATCHUP + 1):
                 data = fetch_lotto(latest + delta)
                 if data:
                     inserted = insert_lotto(self.db_path, data)
@@ -374,7 +354,7 @@ class LotteryAutoUpdater:
 
             # Pension catch-up
             latest = get_latest_draw_no(self.db_path, "pension")
-            for delta in range(1, self.MAX_RETRIES + 1):
+            for delta in range(1, self.MAX_CATCHUP + 1):
                 results = fetch_pension(latest + delta)
                 if results:
                     inserted_any = False
