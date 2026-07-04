@@ -178,6 +178,7 @@ def load_legacy_archive(raw_db=RAW_DB) -> pd.DataFrame:
     for _, row in raw.iterrows():
         methods = json.loads(row["method_results"])
         for name, payload in methods.items():
-            for h in payload.get("hits", []):
+            # older rows use "hits"; recent lotto rows were backfilled with "hits_1st"
+            for h in payload.get("hits") or payload.get("hits_1st") or []:
                 records.append({"method": name.split(". ", 1)[-1], "hits": h})
     return pd.DataFrame(records)
