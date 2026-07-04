@@ -27,6 +27,7 @@
 | 07 | `07_ml_done_right` | **walk-forward CV**, 보정, ROC/AUC, 순열 중요도 | AUC ≈ 0.50 |
 | 08 | `08_unsupervised_structure` | **PCA·k-means·DBSCAN·t-SNE**, 실루엣 | 실루엣 ≈ 0.19 (군집 없음) |
 | 09 | `09_backtest_and_verdict` | 누수 없는 백테스트, ROI, 종합 결론 | 모든 전략 ≈ 0.80 |
+| 10 | `10_pension_deep_dive` | 연금복권 균등성·자릿수·등수 확률 (부록) | 조·자릿수 모두 균등 |
 
 각 노트북은 **독립 실행**되며 (`nbconvert --execute` 무오류), 한국어 서술 + 영어 코드/용어(bilingual)로
 작성되었습니다. 무거운 계산은 재사용 패키지 `src/lotto_ds/`가 담당하고, 노트북은 해석에 집중합니다.
@@ -62,11 +63,14 @@ src/lotto_ds/          재사용 분석 패키지 (노트북 + 웹앱 공유)
   ml_models.py           walk-forward 지도학습 (로지스틱·부스팅)·ROC·보정·중요도
   unsupervised.py        PCA·k-means·DBSCAN·t-SNE
   backtest.py            누수 없는 전략 백테스트 + 레거시 아카이브 대조
+  pension.py             연금복권 720+ 통계·등수 규칙·티켓 체커
+  generator.py           로또/연금 번호 생성기 (정직한 면책 포함)
+  records.py             회차별 예측 적중 아카이브 (두 스키마 호환)
   viz.py                 하나의 검증된 시각 시스템 (palette·marks)
-notebooks/00–09        재현 가능한 bilingual 커리큘럼
-webapp.py + serve.py   재구성된 웹앱 — DS 리포트 API + 프로덕션 진입점
-static_report/         self-contained 교육용 리포트 (Chart.js + KaTeX, 테마 지원)
-tests/                 회귀 테스트 (cleaning·probability·bayesian·randomness, 26 cases)
+notebooks/00–10        재현 가능한 bilingual 커리큘럼 (+연금 심층)
+webapp.py + serve.py   재구성된 웹앱 — DS 리포트 API + 생성/체커/기록 엔드포인트
+static_report/         self-contained 교육용 리포트 + 부록(생성기·체커·기록·연금)
+tests/                 회귀 테스트 (cleaning·probability·bayesian·randomness·pension·generator, 40 cases)
 lottery.db             원본 (수정 안 함) · data/clean/  생성물
 ```
 
