@@ -1,0 +1,16 @@
+
+# Enforce LF so Windows edits do not break Linux builds/containers
+* text=auto
+*.sh text eol=lf
+*.bash text eol=lf
+*.mjs text eol=lf
+Dockerfile* text eol=lf
+entrypoint* text eol=lf
+gradlew text eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff2 binary
