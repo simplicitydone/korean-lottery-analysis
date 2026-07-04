@@ -1,12 +1,11 @@
 [Unit]
-Description=Lottery Pattern Hub
+Description=Lottery Data-Science Report
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/u/pro/3004_lotto
-EnvironmentFile=/home/u/pro/3004_lotto/.env
-ExecStart=/home/u/pro/3004_lotto/.venv/bin/python /home/u/pro/3004_lotto/serve.py
+WorkingDirectory=/home/u/pro/3004_lot
+ExecStart=/home/u/pro/3004_lot/.venv/bin/python /home/u/pro/3004_lot/serve.py
 Restart=on-failure
 RestartSec=5
 
