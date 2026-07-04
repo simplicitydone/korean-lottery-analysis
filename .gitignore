@@ -5,5 +5,8 @@ __pycache__/
 *.pyc
 *.log
 
+# regenerable clean dataset (rebuild: python -m src.lotto_ds.cleaning)
+data/clean/
+
 # local session state
 .claude/
