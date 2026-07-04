@@ -111,7 +111,45 @@ footer{padding:44px 0 80px;color:var(--muted);font-size:13.5px}
 footer code{font-family:var(--mono);color:var(--ink2)}
 .loading{padding:80px 0;text-align:center;color:var(--muted)}
 .themed{position:fixed;top:16px;right:16px;z-index:10;background:var(--card);border:1px solid var(--border);color:var(--ink2);border-radius:20px;padding:6px 12px;font-size:12px;font-family:var(--mono);cursor:pointer}
-@media(max-width:720px){.tiles{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.ba{grid-template-columns:1fr}.ba .arrow{transform:rotate(90deg);justify-content:center}}
+/* appendix: tools & records */
+.appendix-divider{text-align:center;padding:50px 0 10px}
+.appendix-divider .k{font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
+.appendix-divider h2{margin-top:8px}
+.tabs{display:flex;gap:6px;margin:6px 0 18px}
+.tabs button{font-family:var(--mono);font-size:13px;padding:7px 16px;border:1px solid var(--border);background:var(--card);color:var(--ink2);border-radius:20px;cursor:pointer}
+.tabs button.on{background:var(--s1);color:#fff;border-color:var(--s1)}
+.balls{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ball{width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;color:#fff;flex:0 0 auto}
+.ball.b1{background:#eab308}.ball.b2{background:#3b82f6}.ball.b3{background:#ef4444}.ball.b4{background:#6b7280}.ball.b5{background:#22c55e}
+.ball.sm{width:27px;height:27px;font-size:12px}
+.ball.bonus{background:var(--s5)}
+.ball.digit{background:var(--s1);border-radius:8px}
+.ball.group{background:var(--s3);border-radius:8px}
+.ball.hit{outline:3px solid var(--good);outline-offset:1px}
+.genset{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--border);flex-wrap:wrap}
+.genset:first-child{border-top:none}
+.genset .meta{font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:auto}
+.gen-method{margin:14px 0}
+.gen-method h4{font-size:14px;font-weight:600;margin-bottom:4px;color:var(--ink)}
+.rec-wrap{overflow-x:auto}
+.rec-table td.nums{white-space:nowrap}
+.rec-table .balls{flex-wrap:nowrap}
+.rec-table .ball{width:25px;height:25px;font-size:11px}
+.rec-table th,.rec-table td{padding:8px 9px}
+.rec-table tr.click{cursor:pointer}
+.rec-table tr.click:hover{background:color-mix(in srgb,var(--s1) 6%,transparent)}
+.hbar{height:9px;border-radius:5px;background:var(--s1);display:inline-block;vertical-align:middle}
+.explorer-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--border);font-size:14px}
+.explorer-row:first-child{border-top:none}
+.explorer-row .name{width:150px;color:var(--ink2)}
+.explorer-row .track{flex:1;height:8px;background:var(--grid);border-radius:4px;position:relative;min-width:80px}
+.explorer-row .fill{position:absolute;top:0;left:0;height:100%;background:var(--s1);border-radius:4px}
+.explorer-row .pct{width:76px;text-align:right;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.explorer-row .val{width:52px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.detail-box{background:var(--plane);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:8px;font-size:13px}
+.detail-box .m{padding:6px 0;border-top:1px solid var(--border)}
+.detail-box .m:first-child{border-top:none}
+@media(max-width:720px){.tiles{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.ba{grid-template-columns:1fr}.ba .arrow{transform:rotate(90deg);justify-content:center}.explorer-row .name{width:100px}}
 </style>
 </head>
 <body>
@@ -127,6 +165,10 @@ footer code{font-family:var(--mono);color:var(--ink2)}
     <a href="#clean">01 정제</a><a href="#prob">02 확률</a><a href="#eda">03 EDA</a>
     <a href="#tests">04 검정</a><a href="#rand">05 무작위성</a><a href="#bayes">06 베이지안</a>
     <a href="#ml">07 ML</a><a href="#unsup">08 비지도</a><a href="#backtest">09 백테스트</a>
+    <a href="#pension" style="border-color:color-mix(in srgb,var(--s3) 40%,var(--border))">＋ 연금</a>
+    <a href="#gen" style="border-color:color-mix(in srgb,var(--s3) 40%,var(--border))">＋ 생성기</a>
+    <a href="#check" style="border-color:color-mix(in srgb,var(--s3) 40%,var(--border))">＋ 체커</a>
+    <a href="#records" style="border-color:color-mix(in srgb,var(--s3) 40%,var(--border))">＋ 기록</a>
   </nav>
 </div></div>
 
@@ -281,6 +323,89 @@ footer code{font-family:var(--mono);color:var(--ink2)}
     <div class="inputs" id="ticket-inputs"></div>
     <button id="ticket-btn">채점하기 ▸</button>
     <div id="ticket-result"></div>
+  </div>
+</section>
+
+<div class="appendix-divider">
+  <div class="k">부록 · Appendix</div>
+  <h2>도구와 기록 <span class="en" style="color:var(--muted);font-weight:400;font-size:.6em">/ Tools &amp; Records</span></h2>
+  <p class="body" style="max-width:640px;margin:6px auto 0">아래는 재미와 학습을 위한 도구입니다. <b>본문(01–09)이 증명하듯 예측은 확률을 높이지 못합니다</b> —
+  그럼에도 여느 복권 앱처럼 생성기·체커를 제공하되, 정직하게 그 한계를 함께 보여줍니다.</p>
+</div>
+
+<section id="pension">
+  <div class="tag">부록 A · 연금복권 720+</div>
+  <h2>연금복권 심층 분석 <span class="en">/ Pension deep-dive</span></h2>
+  <p class="body">연금복권은 <b>조(1–5) + 6자리(0–9)</b> 구조입니다. 로또와 달리 복원·독립 추출이라 각 자리가 균등해야
+  합니다(노트북 02 참조). <b id="pen-n">—</b>회차 데이터로 확인합니다.</p>
+  <div class="grid2">
+    <div class="chartcard"><h3>조 출현 빈도 <span>Group 1–5</span></h3>
+      <div class="cap">점선=균등 기대. χ² p = <b id="pen-gp">—</b></div>
+      <div class="canvas-box"><canvas id="c-pen-group"></canvas></div></div>
+    <div class="chartcard"><h3>자릿수 합계 분포 <span>digit sum</span></h3>
+      <div class="cap">관측 평균 <b id="pen-sum">—</b> vs 이론 27</div>
+      <div class="canvas-box"><canvas id="c-pen-sum"></canvas></div></div>
+  </div>
+  <div class="chartcard"><h3>위치별 자릿수 빈도 <span>6 positions × 0–9 heatmap</span></h3>
+    <div class="cap">모든 칸이 균일 ⇒ 위치 편향 없음. 위치별 χ² 모두 p&gt;0.05.</div>
+    <div class="canvas-box"><canvas id="c-pen-heat"></canvas></div></div>
+  <h3 style="margin:26px 0 8px;font-size:16px">등수별 당첨 구조 <span style="color:var(--muted);font-weight:400;font-size:.8em">Prize tiers</span></h3>
+  <div class="rec-wrap"><table id="pen-tiers"><thead><tr><th>등수</th><th>일치 조건</th><th>확률</th><th>당첨금</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+<section id="gen">
+  <div class="tag">부록 B · GENERATOR</div>
+  <h2>번호 생성기 <span class="en">/ Prediction generator</span></h2>
+  <div class="callout warn" id="gen-disclaimer">생성된 조합은 재미·교육용입니다. 어떤 방법도 당첨 확률을 높이지 않습니다.</div>
+  <div class="tabs" id="gen-tabs"><button data-t="lotto" class="on">로또 6/45</button><button data-t="pension">연금복권</button></div>
+  <div class="widget">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <button id="gen-btn">🎲 조합 생성</button>
+      <span style="font-size:13px;color:var(--muted)">방법별 5조합 · 로또는 당첨 프로필(합계·AC·홀짝) 필터 적용</span>
+    </div>
+    <div id="gen-out" style="margin-top:16px"></div>
+  </div>
+</section>
+
+<section id="check">
+  <div class="tag">부록 C · CHECKER</div>
+  <h2>번호 체커 <span class="en">/ What would you have won?</span></h2>
+  <p class="body">번호를 입력하면 <b>실제 과거 당첨 회차</b>와 비교해 등수를 알려줍니다. (기본: 최신 회차)</p>
+  <div class="tabs" id="check-tabs"><button data-t="lotto" class="on">로또 6/45</button><button data-t="pension">연금복권</button></div>
+  <div class="widget">
+    <div id="check-lotto-form">
+      <div class="inputs" id="check-lotto-inputs"></div>
+    </div>
+    <div id="check-pension-form" hidden>
+      <div class="inputs"><input type="number" min="1" max="5" placeholder="조" id="pen-group-in" style="width:52px">
+        <span style="align-self:center;color:var(--muted)">조 +</span>
+        <span id="check-pension-digits"></span></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;margin-top:6px">
+      <button id="check-btn">✓ 결과 확인</button>
+      <select id="check-draw" style="padding:9px;border-radius:8px;background:var(--plane);color:var(--ink);border:1px solid var(--line);font-size:13px"></select>
+    </div>
+    <div id="check-out" style="margin-top:16px;display:none"></div>
+  </div>
+</section>
+
+<section id="records">
+  <div class="tag">부록 D · RECORDS</div>
+  <h2>적중 기록 아카이브 <span class="en">/ Per-회차 records</span></h2>
+  <p class="body">누수 없는 회고 엔진이 <b>과거 각 회차마다</b> 그 이전 데이터만으로 생성한 예측의 실제 성적입니다.
+  행을 클릭하면 방법별 상세가 열립니다. §09의 결론(무엇도 무작위를 못 이김)을 회차 단위로 확인하세요.</p>
+  <div class="tabs" id="rec-tabs"><button data-t="lotto" class="on">로또 (<span id="rec-lc">—</span>회)</button><button data-t="pension">연금 (<span id="rec-pc">—</span>회)</button></div>
+  <div class="rec-wrap"><table class="rec-table" id="rec-table"><thead></thead><tbody></tbody></table></div>
+
+  <h3 style="margin:30px 0 8px;font-size:16px">회차별 분석 <span style="color:var(--muted);font-weight:400;font-size:.8em">/ Per-draw explorer (lotto)</span></h3>
+  <div class="widget">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <label style="font-size:14px;color:var(--ink2)">회차</label>
+      <input type="number" id="explore-n" style="width:90px;padding:9px;border-radius:8px;background:var(--plane);color:var(--ink);border:1px solid var(--line)">
+      <button id="explore-btn">분석</button>
+      <span style="font-size:13px;color:var(--muted)">그 회차의 모양 특성이 전체 분포에서 어디쯤인지(백분위) 보여줍니다.</span>
+    </div>
+    <div id="explore-out" style="margin-top:16px"></div>
   </div>
 </section>
 
@@ -441,7 +566,163 @@ function render(d){
     bt.legacy_methods.map(m=>m.mean),bt.legacy_methods.map(m=>m.is_ml?S6:S1),bt.theoretical,S6,MUT);
 
   buildWidget(pr.total_combos, pr.expected_matches);
+  setupAppendix(d);
   if(window.renderMathInElement) renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});
+}
+
+// ─────────────────────────── appendix: tools & records ───────────────────────
+let GEN_TAB='lotto', CHECK_TAB='lotto', REC_TAB='lotto';
+const lottoBallCls=n=>'b'+(Math.min(4,Math.floor((n-1)/10))+1);
+const lottoBalls=(nums,extra={})=>nums.map(n=>`<span class="ball ${lottoBallCls(n)} ${extra[n]?'hit':''}">${n}</span>`).join('');
+const pensionBalls=(g,digits,hit)=>`<span class="ball group">${g}</span>`+
+  digits.map((d,i)=>`<span class="ball digit ${hit&&i>=6-hit?'hit':''}">${d}</span>`).join('');
+
+function setupAppendix(d){
+  const S1=css('--s1'),S3=css('--s3'),MUT=css('--muted');
+  const pen=d.pension;
+  $('#pen-n').textContent=pen.n_draws; $('#pen-gp').textContent=pen.group_chi2_p;
+  $('#pen-sum').textContent=pen.sum_mean;
+  // group bar
+  mk('#c-pen-group',{type:'bar',data:{labels:[1,2,3,4,5].map(g=>'조'+g),datasets:[{data:pen.group_freq,backgroundColor:S3,borderRadius:4,barPercentage:.7}]},
+    options:{...baseOpts(),plugins:{...baseOpts().plugins,ref:{lines:[{axis:'y',value:pen.group_expected,color:MUT}]}}}});
+  // digit sum hist
+  const pe=pen.sum_hist_edges,pm=pe.map((v,i)=>i<pe.length-1?(v+pe[i+1])/2:null).filter(x=>x!=null);
+  mk('#c-pen-sum',{type:'bar',data:{labels:pm.map(x=>Math.round(x)),datasets:[{data:pen.sum_hist,backgroundColor:S1,borderRadius:2,barPercentage:1}]},
+    options:{...baseOpts(),plugins:{...baseOpts().plugins,ref:{lines:[{axis:'x',value:pm.findIndex(x=>x>=27),color:css('--s6')}]}}}});
+  drawHeatmap('c-pen-heat',pen.digit_position_freq);
+  // prize tiers
+  $('#pen-tiers tbody').innerHTML=pen.prize_tiers.map(t=>`<tr><td><b>${t.tier}</b></td><td>${t.match}</td>
+    <td class="p">1 in ${fmt(t.one_in)}</td><td>${t.prize}</td></tr>`).join('');
+
+  // records counts + table
+  $('#rec-lc').textContent=fmt(d.records.lotto_coverage.computed);
+  $('#rec-pc').textContent=fmt(d.records.pension_coverage.computed);
+  renderRecords(d);
+  bindTabs('#rec-tabs',t=>{REC_TAB=t;renderRecords(d);});
+
+  // checker draw dropdown + inputs
+  buildCheckInputs();
+  fillDrawSelect(d);
+  bindTabs('#check-tabs',t=>{CHECK_TAB=t;
+    $('#check-lotto-form').hidden=t!=='lotto';$('#check-pension-form').hidden=t==='lotto';
+    fillDrawSelect(d);$('#check-out').style.display='none';});
+  $('#check-btn').onclick=()=>runCheck(d);
+
+  // generator
+  $('#gen-disclaimer').textContent=d.records? '생성된 조합은 재미·교육용입니다. 어떤 방법도 당첨 확률을 높이지 않으며, 모든 조합은 정확히 동일한 확률입니다.':'';
+  bindTabs('#gen-tabs',t=>{GEN_TAB=t;$('#gen-out').innerHTML='';});
+  $('#gen-btn').onclick=runGenerate;
+
+  // explorer
+  $('#explore-n').value=d.meta.draw_max;
+  $('#explore-btn').onclick=runExplore;
+}
+
+function bindTabs(sel,cb){const box=$(sel);box.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+  box.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');cb(b.dataset.t);});}
+
+function drawHeatmap(id,mat){const cv=$('#'+id);const box=cv.parentElement;
+  const W=box.clientWidth||760,H=200;cv.width=W;cv.height=H;const ctx=cv.getContext('2d');
+  const rows=6,cols=10,padL=52,padT=6,padB=20;const cw=(W-padL-6)/cols,ch=(H-padT-padB)/rows;
+  const max=Math.max(...mat.flat());const s1=css('--s1');
+  ctx.clearRect(0,0,W,H);ctx.font='11px '+css('--sans');ctx.fillStyle=css('--muted');
+  for(let r=0;r<rows;r++){ctx.textAlign='right';ctx.fillText('자리'+(r+1),padL-8,padT+ch*r+ch/2+4);
+    for(let c=0;c<cols;c++){const v=mat[r][c]/max;
+      ctx.fillStyle=hexA(s1,0.12+v*0.88);ctx.fillRect(padL+cw*c+1,padT+ch*r+1,cw-2,ch-2);}}
+  ctx.fillStyle=css('--muted');ctx.textAlign='center';
+  for(let c=0;c<cols;c++)ctx.fillText(c,padL+cw*c+cw/2,H-6);}
+function hexA(hex,a){const h=hex.replace('#','');const n=parseInt(h.length===3?h.split('').map(x=>x+x).join(''):h,16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;}
+
+function renderRecords(d){
+  const isP=REC_TAB==='pension';
+  const recs=isP?d.records.pension_recent:d.records.lotto_recent;
+  const lb=isP?d.records.pension_leaderboard:d.records.lotto_leaderboard;
+  const methods=lb.map(m=>m.method);
+  const thead=$('#rec-table thead'), tb=$('#rec-table tbody');
+  thead.innerHTML=`<tr><th>회차</th><th>추첨일</th><th>실제 당첨번호</th><th>최고적중</th>${methods.map(m=>`<th>${m}</th>`).join('')}</tr>`;
+  tb.innerHTML=recs.map(r=>{
+    let nums;
+    if(isP){const a=r.actual&&r.actual[0]?r.actual[0]:[0,0,0,0,0,0,0];nums=pensionBalls(a[0],a.slice(1,7));}
+    else nums=`<span class="balls">${lottoBalls(r.actual)}</span>`;
+    const cells=methods.map(m=>{const v=r.method_best[m]??0;return `<td class="p">${v||'·'}</td>`;}).join('');
+    return `<tr class="click" data-n="${r.draw_no}"><td class="p">${r.draw_no}</td><td>${r.draw_date}</td>
+      <td class="nums"><span class="balls">${nums}</span></td><td class="p"><b>${r.ensemble_best}</b></td>${cells}</tr>
+      <tr id="det-${r.draw_no}"></tr>`;}).join('');
+  tb.querySelectorAll('tr.click').forEach(tr=>tr.onclick=()=>toggleDetail(tr.dataset.n,isP?'PENSION':'LOTTO',methods.length+4));
+}
+
+function toggleDetail(n,mode,span){
+  const cell=$('#det-'+n);
+  if(cell.dataset.open){cell.dataset.open='';cell.innerHTML='';return;}
+  cell.dataset.open='1';cell.innerHTML=`<td colspan="${span}"><div class="detail-box">불러오는 중…</div></td>`;
+  fetch(`/api/records/detail/${mode}/${n}`).then(r=>r.json()).then(d=>{
+    const rows=Object.entries(d.methods||{}).map(([name,m])=>{
+      const sets=(m.sets_generated||[]).map(s=>{
+        if(mode==='PENSION') return `<span class="balls" style="display:inline-flex">${pensionBalls(s.group,s.digits)}</span>`;
+        return `<span class="balls" style="display:inline-flex">${lottoBalls(s.numbers||s)}</span>`;}).join(' &nbsp; ');
+      const hits=(m.hits||m.hits_1st||[]).join(',');
+      return `<div class="m"><b>${name}</b> <span style="color:var(--muted)">(hits: ${hits})</span><br>${sets}</div>`;}).join('');
+    cell.innerHTML=`<td colspan="${span}"><div class="detail-box">${rows||'상세 없음'}</div></td>`;
+  });
+}
+
+function buildCheckInputs(){
+  $('#check-lotto-inputs').innerHTML=[1,2,3,4,5,6].map(i=>`<input type="number" min="1" max="45" placeholder="N${i}">`).join('');
+  $('#check-pension-digits').innerHTML=[1,2,3,4,5,6].map(i=>`<input type="number" min="0" max="9" placeholder="${i}" style="width:48px">`).join('');
+}
+function fillDrawSelect(d){
+  const list=CHECK_TAB==='pension'?d.pension.latest:d.lotto_latest;
+  $('#check-draw').innerHTML=list.map((x,i)=>`<option value="${x.draw_no}">${x.draw_no}회 (${x.draw_date})${i===0?' · 최신':''}</option>`).join('');
+}
+function runCheck(d){
+  const draw_no=parseInt($('#check-draw').value);const out=$('#check-out');out.style.display='block';
+  if(CHECK_TAB==='lotto'){
+    const nums=[...$('#check-lotto-inputs').querySelectorAll('input')].map(x=>parseInt(x.value));
+    fetch('/api/check/lotto',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({numbers:nums,draw_no})})
+      .then(r=>r.json()).then(res=>{
+        if(res.error){out.innerHTML=`<span style="color:var(--crit)">⚠️ ${res.error}</span>`;return;}
+        const hit={};res.matched.forEach(n=>hit[n]=1);
+        out.innerHTML=`${res.draw_no}회 당첨: <span class="balls" style="display:inline-flex">${lottoBalls(res.win_numbers)}<span class="ball bonus sm">+${res.bonus}</span></span>
+          <div style="margin-top:8px">내 번호: <span class="balls" style="display:inline-flex">${lottoBalls(res.your_numbers,hit)}</span></div>
+          <div style="margin-top:10px;font-size:20px;font-weight:700">${res.match_count}개 일치${res.bonus_match?' + 보너스':''} → <span style="color:${res.tier==='꽝'?'var(--muted)':'var(--good)'}">${res.tier}</span></div>`;});
+  } else {
+    const g=parseInt($('#pen-group-in').value);
+    const digits=[...$('#check-pension-digits').querySelectorAll('input')].map(x=>parseInt(x.value));
+    fetch('/api/check/pension',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({group:g,digits,draw_no})})
+      .then(r=>r.json()).then(res=>{
+        if(res.error){out.innerHTML=`<span style="color:var(--crit)">⚠️ ${res.error}</span>`;return;}
+        out.innerHTML=`${res.draw_no}회 당첨: <span class="balls" style="display:inline-flex">${pensionBalls(res.win_group,res.win_digits)}</span>
+          <div style="margin-top:8px">내 번호: <span class="balls" style="display:inline-flex">${pensionBalls(res.your_group,res.your_digits,res.matched_trailing)}</span></div>
+          <div style="margin-top:10px;font-size:20px;font-weight:700">뒤 ${res.matched_trailing}자리 일치${res.group_match?' + 조 일치':''} → <span style="color:${res.tier==='꽝'?'var(--muted)':'var(--good)'}">${res.tier}</span></div>`;});
+  }
+}
+
+function runGenerate(){
+  const out=$('#gen-out');out.innerHTML='<span style="color:var(--muted)">생성 중…</span>';
+  const seed=Math.floor(Math.random()*100000);
+  fetch(`/api/generate/${GEN_TAB}?count=5&seed=${seed}`).then(r=>r.json()).then(d=>{
+    out.innerHTML=Object.entries(d.methods).map(([m,sets])=>{
+      const rows=sets.map(s=>{
+        if(GEN_TAB==='pension') return `<div class="genset"><span class="balls">${pensionBalls(s.group,s.digits)}</span></div>`;
+        return `<div class="genset"><span class="balls">${lottoBalls(s.numbers)}</span><span class="meta">합 ${s.sum} · 홀 ${s.odd} · AC ${s.ac}</span></div>`;}).join('');
+      return `<div class="gen-method"><h4>${m}</h4>${rows}</div>`;}).join('');
+  });
+}
+
+function runExplore(){
+  const n=parseInt($('#explore-n').value);const out=$('#explore-out');
+  out.innerHTML='<span style="color:var(--muted)">분석 중…</span>';
+  fetch(`/api/draw/lotto/${n}`).then(r=>r.json()).then(d=>{
+    if(d.error){out.innerHTML=`<span style="color:var(--crit)">⚠️ ${d.error}</span>`;return;}
+    const names={sum:'합계',odd_count:'홀수 개수',high_count:'고번호(≥23)',range:'범위',max_gap:'최대 간격',consecutive_pairs:'연속쌍',ac_value:'AC 값',decades_covered:'십분위 커버리지'};
+    const rows=Object.entries(d.features).map(([k,f])=>`<div class="explorer-row">
+      <span class="name">${names[k]||k}</span><span class="val">${f.value}</span>
+      <span class="track"><span class="fill" style="width:${f.percentile}%"></span></span>
+      <span class="pct">${f.percentile}%ile</span></div>`).join('');
+    out.innerHTML=`<div style="margin-bottom:10px">${n}회 당첨: <span class="balls" style="display:inline-flex">${lottoBalls(d.numbers)}<span class="ball bonus sm">+${d.bonus}</span></span></div>
+      ${rows}<div style="margin-top:10px;font-size:13px;color:var(--muted)">막대 = 전체 이력에서의 백분위. 대부분 중간(50% 부근)에 몰립니다 — 특이 회차가 드묾을 보여줍니다.</div>`;
+  });
 }
 
 function mk(sel,cfg){CHARTS.push(new Chart($(sel),cfg));}
