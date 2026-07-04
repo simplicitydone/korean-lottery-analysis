@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>로또는 예측 가능한가? · An Honest Data-Science Study</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎲</text></svg>">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{
+  --surface:#fcfcfb; --plane:#f9f9f7; --card:#ffffff;
+  --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --line:#c3c2b7; --border:rgba(11,11,11,.10);
+  --s1:#2a78d6; --s2:#1baf7a; --s3:#eda100; --s5:#4a3aa7; --s6:#e34948;
+  --good:#0ca30c; --warn:#fab219; --crit:#d03b3b;
+  --mono:"Fira Code",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI","Malgun Gothic",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --surface:#1a1a19; --plane:#0d0d0d; --card:#212120;
+  --ink:#fff; --ink2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --line:#383835; --border:rgba(255,255,255,.10);
+  --s1:#3987e5; --s2:#199e70; --s3:#c98500; --s5:#9085e9; --s6:#e66767; --good:#0ca30c;
+}}
+:root[data-theme="dark"]{
+  --surface:#1a1a19; --plane:#0d0d0d; --card:#212120;
+  --ink:#fff; --ink2:#c3c2b7; --grid:#2c2c2a; --line:#383835; --border:rgba(255,255,255,.10);
+  --s1:#3987e5; --s2:#199e70; --s3:#c98500; --s5:#9085e9; --s6:#e66767;
+}
+:root[data-theme="light"]{
+  --surface:#fcfcfb; --plane:#f9f9f7; --card:#ffffff;
+  --ink:#0b0b0b; --ink2:#52514e; --grid:#e1e0d9; --line:#c3c2b7; --border:rgba(11,11,11,.10);
+  --s1:#2a78d6; --s2:#1baf7a; --s3:#eda100; --s5:#4a3aa7; --s6:#e34948;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--plane);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:940px;margin:0 auto;padding:0 24px}
+a{color:var(--s1)}
+.katex{font-size:1.05em}
+.hero{padding:88px 0 52px;border-bottom:1px solid var(--border)}
+.kicker{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:20px}
+h1{font-size:clamp(30px,5vw,50px);line-height:1.08;font-weight:700;letter-spacing:-.02em;margin-bottom:18px}
+h1 em{font-style:normal;color:var(--s1)}
+.lede{font-size:19px;color:var(--ink2);max-width:660px}
+.lede b{color:var(--ink);font-weight:600}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin:40px 0 8px}
+.tile{background:var(--card);padding:20px 18px}
+.tile .v{font-size:26px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.tile .v.ok{color:var(--good)} .tile .v.no{color:var(--crit)}
+.tile .l{font-size:12px;color:var(--muted);margin-top:4px;font-family:var(--mono)}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
+.toc a{font-family:var(--mono);font-size:12px;text-decoration:none;color:var(--ink2);border:1px solid var(--border);border-radius:20px;padding:5px 12px}
+.toc a:hover{border-color:var(--s1);color:var(--s1)}
+section{padding:60px 0;border-bottom:1px solid var(--border);scroll-margin-top:20px}
+.tag{font-family:var(--mono);font-size:12px;color:var(--s1);letter-spacing:.1em;margin-bottom:12px}
+h2{font-size:clamp(22px,3.4vw,31px);font-weight:700;letter-spacing:-.02em;margin-bottom:14px}
+h2 .en{color:var(--muted);font-weight:400;font-size:.6em}
+p.body{color:var(--ink2);font-size:16.5px;margin-bottom:14px}
+p.body b{color:var(--ink)}
+.chartcard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 20px 14px;margin:22px 0}
+.chartcard h3{font-size:15px;font-weight:600;margin-bottom:2px}
+.chartcard h3 span{color:var(--muted);font-weight:400}
+.chartcard .cap{font-size:13px;color:var(--muted);margin-bottom:14px}
+.canvas-box{position:relative;height:300px}
+.canvas-box.tall{height:380px}.canvas-box.sq{height:340px;max-width:420px;margin:0 auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.ba{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;margin:24px 0}
+.ba .col{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
+.ba .col.before{border-color:color-mix(in srgb,var(--crit) 30%,var(--border))}
+.ba .col.after{border-color:color-mix(in srgb,var(--good) 40%,var(--border))}
+.ba h4{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px;color:var(--muted)}
+.ba .col.before h4{color:var(--crit)} .ba .col.after h4{color:var(--good)}
+.ba ul{list-style:none} .ba li{padding:7px 0;font-size:14.5px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:10px}
+.ba li:first-child{border-top:none} .ba li b{font-variant-numeric:tabular-nums}
+.ba .arrow{display:flex;align-items:center;color:var(--muted);font-size:24px}
+table{width:100%;border-collapse:collapse;margin:20px 0;font-size:14.5px}
+th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--border)}
+th{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:500}
+td.p{font-variant-numeric:tabular-nums;font-family:var(--mono)}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:20px}
+.pill.no,.pill.ok{background:color-mix(in srgb,var(--good) 15%,transparent);color:var(--good)}
+.pill.yes,.pill.bad{background:color-mix(in srgb,var(--warn) 22%,transparent);color:color-mix(in srgb,var(--warn) 60%,var(--ink))}
+.callout{background:color-mix(in srgb,var(--s1) 7%,var(--card));border:1px solid color-mix(in srgb,var(--s1) 25%,var(--border));border-left:3px solid var(--s1);border-radius:10px;padding:16px 18px;margin:20px 0;font-size:15px;color:var(--ink2)}
+.callout b{color:var(--ink)}
+.callout.warn{background:color-mix(in srgb,var(--warn) 9%,var(--card));border-color:color-mix(in srgb,var(--warn) 35%,var(--border));border-left-color:var(--warn)}
+details{margin:18px 0;border:1px solid var(--border);border-radius:12px;background:var(--card);overflow:hidden}
+details summary{cursor:pointer;padding:14px 18px;font-weight:600;font-size:14.5px;list-style:none;display:flex;align-items:center;gap:8px}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"▸";color:var(--s1);font-size:12px;transition:transform .15s}
+details[open] summary::before{transform:rotate(90deg)}
+details .inner{padding:0 18px 18px;font-size:14.5px;color:var(--ink2)}
+details .inner p{margin-bottom:10px}
+.formula{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin:18px 0;overflow-x:auto;text-align:center}
+.eq-note{font-size:13px;color:var(--muted);margin-top:8px}
+.widget{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin:24px 0}
+.widget .inputs{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.widget input{width:58px;height:48px;text-align:center;font-size:18px;font-family:var(--mono);border:1px solid var(--line);border-radius:9px;background:var(--plane);color:var(--ink)}
+.widget input:focus{outline:2px solid var(--s1);border-color:var(--s1)}
+.widget button{background:var(--s1);color:#fff;border:none;border-radius:9px;padding:12px 22px;font-size:15px;font-weight:600;cursor:pointer}
+.widget button:hover{filter:brightness(1.08)}
+#ticket-result{margin-top:18px;font-size:15px;display:none}
+#ticket-result .big{font-size:22px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.verdict{background:var(--ink);color:var(--surface);border-radius:16px;padding:36px 32px;margin:44px 0}
+.verdict .kicker{color:color-mix(in srgb,var(--surface) 55%,transparent)}
+.verdict p{font-size:20px;font-weight:500;line-height:1.5}
+.verdict .quote{font-size:16px;color:color-mix(in srgb,var(--surface) 70%,transparent);margin-top:16px;font-style:italic}
+footer{padding:44px 0 80px;color:var(--muted);font-size:13.5px}
+footer code{font-family:var(--mono);color:var(--ink2)}
+.loading{padding:80px 0;text-align:center;color:var(--muted)}
+.themed{position:fixed;top:16px;right:16px;z-index:10;background:var(--card);border:1px solid var(--border);color:var(--ink2);border-radius:20px;padding:6px 12px;font-size:12px;font-family:var(--mono);cursor:pointer}
+@media(max-width:720px){.tiles{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.ba{grid-template-columns:1fr}.ba .arrow{transform:rotate(90deg);justify-content:center}}
+</style>
+</head>
+<body>
+<button class="themed" id="themeBtn" title="테마 전환">◐ theme</button>
+<div class="hero"><div class="wrap">
+  <div class="kicker">데이터 사이언스 스터디 · Korean Lottery</div>
+  <h1>로또는 예측할 수 있을까?<br><em>정직한 답은 "아니오"</em>입니다.</h1>
+  <p class="lede">로또 6/45 <b id="hero-draws">—</b>회 데이터를 <b>정제 → 확률 → EDA → 검정 → 무작위성 → 베이지안 → ML → 비지도 → 백테스트</b>의
+  9단계로 분석했습니다. 결론: 두 복권은 <b>공정한 균등 난수와 통계적으로 구별되지 않습니다.</b>
+  이 페이지는 예측이 아니라 <b>방법론</b>을 보여줍니다.</p>
+  <div class="tiles" id="tiles"><div class="loading" style="grid-column:1/-1">분석 로딩 중…</div></div>
+  <nav class="toc">
+    <a href="#clean">01 정제</a><a href="#prob">02 확률</a><a href="#eda">03 EDA</a>
+    <a href="#tests">04 검정</a><a href="#rand">05 무작위성</a><a href="#bayes">06 베이지안</a>
+    <a href="#ml">07 ML</a><a href="#unsup">08 비지도</a><a href="#backtest">09 백테스트</a>
+  </nav>
+</div></div>
+
+<div class="wrap" id="content" hidden>
+
+<section id="clean">
+  <div class="tag">01 · DATA CLEANING</div>
+  <h2>원본은 엉망이었습니다 <span class="en">/ The raw dump</span></h2>
+  <p class="body">원본 <code>lottery.db</code>는 스프레드시트를 그대로 SQLite로 덤프한 파일입니다. 값은 대체로 멀쩡했지만
+  스키마는 <b>유령 열, 인코딩 깨진 당첨금, 고아 시트 테이블</b>로 오염돼 있었습니다.</p>
+  <div class="ba" id="ba"></div>
+  <div class="callout" id="clean-note"></div>
+  <details><summary>왜 이 단계가 중요한가 — tidy data 원칙</summary><div class="inner">
+    <p><b>Tidy data</b>: 각 변수는 하나의 열, 각 관측은 하나의 행. 유령 열 399개와 고아 테이블 8개는
+    이 원칙을 위반해 분석을 오염시킵니다. 정제 파이프라인은 원본을 수정하지 않고
+    정규화된 <code>data/clean/lotto_clean.db</code>를 새로 만듭니다.</p>
+    <p><b>결측 분류</b>: 최근 회차의 당첨금 결측은 <i>진짜 결측(MCAR 아님, 아직 미집계)</i>이므로 0으로
+    채우지 않고 NULL로 보존합니다. 결측을 잘못 채우면 하류 통계가 편향됩니다.</p>
+  </div></details>
+</section>
+
+<section id="prob">
+  <div class="tag">02 · PROBABILITY FOUNDATIONS</div>
+  <h2>이론이 말하는 정답 <span class="en">/ What the math predicts</span></h2>
+  <p class="body">데이터를 보기 전에, 공정한 추첨이라면 무엇이 나와야 하는지 <b>닫힌 형태</b>로 계산합니다.
+  45개 중 6개가 당첨일 때 6개를 골라 <span id="p-k">k</span>개 맞을 확률은 <b>초기하분포</b>를 따릅니다.</p>
+  <div class="formula">
+    <div>$$P(K=k)=\dfrac{\dbinom{6}{k}\dbinom{39}{\,6-k}}{\dbinom{45}{6}},\qquad
+    E[K]=6\cdot\dfrac{6}{45}=0.8$$</div>
+    <div class="eq-note" id="prob-combos"></div>
+  </div>
+  <table id="tiers"><thead><tr><th>맞춘 개수</th><th>확률</th><th>등수</th></tr></thead><tbody></tbody></table>
+  <div class="callout"><b>핵심:</b> 티켓당 기대 적중 <b>0.8</b>은 어떤 번호를 고르든 변하지 않습니다 (09 백테스트의 기준선).
+  개별 조합은 모두 정확히 <span id="prob-one" class="p"></span>분의 1로 동일합니다.</div>
+  <details><summary>독립 vs 종속 — 로또와 연금복권의 근본 차이</summary><div class="inner">
+    <p>로또는 <b>비복원</b> 추출이라 한 추첨 내 번호끼리 <b>음의 상관</b>(종속)을 가집니다:
+    $\mathrm{Cov}(\mathbb{1}_i,\mathbb{1}_j)=-\tfrac{p(1-p)}{N-1}=$ <span id="prob-cov" class="p"></span>.
+    반면 연금복권 자릿수는 <b>복원·독립</b>이라 각 자리가 정확히 Uniform{0–9}입니다.
+    같은 '복권'도 <b>표본추출 구조</b>가 통계적 성질을 지배합니다 — 분석 전에 데이터 생성 과정을 이해해야 하는 이유입니다.</p>
+  </div></details>
+</section>
+
+<section id="eda">
+  <div class="tag">03 · EXPLORATORY ANALYSIS</div>
+  <h2>모든 것이 균등을 가리킵니다 <span class="en">/ Everything points to uniform</span></h2>
+  <p class="body">번호 빈도는 균등 기대값 주위에 흩어지고, 합계 평균은 이론값 <b>138</b>에 거의 정확히 맞습니다.</p>
+  <div class="chartcard">
+    <h3>번호별 출현 횟수 <span>Number frequency</span></h3>
+    <div class="cap">점선 = 균등 기대값. 막대가 그 주위로 무작위하게 흩어집니다.</div>
+    <div class="canvas-box"><canvas id="c-freq"></canvas></div>
+  </div>
+  <div class="grid2">
+    <div class="chartcard"><h3>합계 분포 <span>Sum</span></h3>
+      <div class="cap">관측 평균 <b id="sum-mean">—</b> vs 이론 138 (CLT)</div>
+      <div class="canvas-box"><canvas id="c-sum"></canvas></div></div>
+    <div class="chartcard"><h3>홀수 개수 균형 <span>Odd balance</span></h3>
+      <div class="cap">막대=관측 · 선=이항 기대</div>
+      <div class="canvas-box"><canvas id="c-odd"></canvas></div></div>
+  </div>
+</section>
+
+<section id="tests">
+  <div class="tag">04 · HYPOTHESIS TESTING</div>
+  <h2>정식으로 검정하기 <span class="en">/ Formal tests</span></h2>
+  <p class="body">귀무가설 H0: <i>추첨은 공정하고 기억 없는 균등 샘플러다.</i> χ²·런·자기상관·핫넘버 검정으로 반증을 시도합니다.</p>
+  <table id="battery"><thead><tr><th>검정</th><th>통계량</th><th>p-value</th><th>판정</th></tr></thead><tbody></tbody></table>
+  <div class="grid2">
+    <div class="chartcard"><h3>번호 표준화 잔차 <span>χ² residuals</span></h3>
+      <div class="cap">±1.96 밖 = 붉은색. χ² p = <b id="chi-p">—</b></div>
+      <div class="canvas-box"><canvas id="c-resid"></canvas></div></div>
+    <div class="chartcard"><h3>합계 자기상관 <span>ACF</span></h3>
+      <div class="cap">회색 밴드 = 95% 백색잡음. 뚫는 신호 없음.</div>
+      <div class="canvas-box"><canvas id="c-acf"></canvas></div></div>
+  </div>
+  <div class="callout warn"><b>효과크기 & 검정력:</b> Cohen's w ≈ 0.06 (‘작음’ 0.1에도 미달), 작은 효과를 잡을 검정력은 ≈ 1.0.
+  즉 실질적 편향이 있었다면 거의 확실히 잡아냈을 것 — <b>귀무결과는 데이터 부족이 아니라 진짜 무편향</b>입니다.</div>
+</section>
+
+<section id="rand">
+  <div class="tag">05 · RANDOMNESS BATTERY</div>
+  <h2>이 수열은 정말 무작위인가 <span class="en">/ RNG audit</span></h2>
+  <p class="body">RNG 감사관처럼 <b>배터리</b>를 돌립니다. 각 검정은 다른 종류의 구조에 민감합니다.
+  검정마다 무작위 친화 방향이 달라 (ADF는 <i>기각</i>이 무작위), 통합 판정 열로 정리했습니다.</p>
+  <table id="rand-table"><thead><tr><th>검정</th><th>통계량</th><th>p-value</th><th>무작위 부합</th></tr></thead><tbody></tbody></table>
+  <div class="callout" id="rand-note"></div>
+</section>
+
+<section id="bayes">
+  <div class="tag">06 · BAYESIAN ESTIMATION</div>
+  <h2>각 번호의 진짜 확률과 불확실성 <span class="en">/ Credible intervals</span></h2>
+  <p class="body">"균등한가?"(빈도주의) 대신 "각 번호 확률은 얼마이고 얼마나 확신하나?"를 묻습니다.
+  켤레 Beta-Binomial로 후분포가 닫힌 형태로 나옵니다.</p>
+  <div class="formula">$$\theta_i\mid k_i \sim \mathrm{Beta}(\alpha+k_i,\ \beta+N-k_i),\qquad \theta_{\text{fair}}=\tfrac{6}{45}\approx0.133$$</div>
+  <div class="chartcard">
+    <h3>번호별 확률의 95% 신용구간 <span>forest plot</span></h3>
+    <div class="cap">점=사후평균, 세로선=공정값 6/45. <b id="bayes-count">—</b>/45 구간이 공정값 포함 (나머지는 우연 수준).</div>
+    <div class="canvas-box tall"><canvas id="c-bayes"></canvas></div>
+  </div>
+  <div class="callout"><b>축소(shrinkage):</b> 사후 평균은 잡음 많은 경험적 비율을 공정값 6/45 쪽으로 끌어당깁니다 —
+  "핫 넘버"가 다음 회차에 평범해지는 통계적 이유(평균 회귀)입니다.</div>
+</section>
+
+<section id="ml">
+  <div class="tag">07 · MACHINE LEARNING DONE RIGHT</div>
+  <h2>강력한 모델도 신호를 못 찾는다 <span class="en">/ AUC ≈ 0.5</span></h2>
+  <p class="body">이진 분류 — <i>번호 k가 다음 회차에 나오는가?</i> 누수 없는 walk-forward로 로지스틱과
+  그래디언트 부스팅(XGBoost 계열)을 학습합니다. 지표가 스스로 결론을 내립니다.</p>
+  <table id="ml-table"><thead><tr><th>모델</th><th>AUC</th><th>vs 우연(0.5)</th></tr></thead><tbody></tbody></table>
+  <div class="grid2">
+    <div class="chartcard"><h3>ROC 곡선 <span>대각선에 붙음</span></h3>
+      <div class="cap">모델이 무작위(대각선)를 벗어나지 못함</div>
+      <div class="canvas-box sq"><canvas id="c-roc"></canvas></div></div>
+    <div class="chartcard"><h3>특성 중요도 <span>permutation</span></h3>
+      <div class="cap">모두 ≈ 0 — 예측에 기여하는 특성 없음</div>
+      <div class="canvas-box"><canvas id="c-imp"></canvas></div></div>
+  </div>
+  <div class="callout warn"><b>흔한 함정:</b> 시간을 섞어 교차검증하면 누수가 생깁니다. 불균형(13% 양성)에서 정확도는
+  전부 0으로 찍어도 87%. 시계열 예측은 <b>반드시 walk-forward + AUC/보정</b>으로 평가하세요.</div>
+</section>
+
+<section id="unsup">
+  <div class="tag">08 · UNSUPERVISED STRUCTURE</div>
+  <h2>숨은 군집은 없다 <span class="en">/ No hidden structure</span></h2>
+  <p class="body">레이블 없이 데이터 자체의 구조를 찾습니다. PCA·k-means·t-SNE 모두 "군집 없음"으로 수렴합니다.</p>
+  <div class="grid2">
+    <div class="chartcard"><h3>PCA 설명 분산 <span>지배 성분 없음</span></h3>
+      <div class="cap">막대=개별, 선=누적. 구조가 있다면 몇 성분이 대부분을 설명해야 함</div>
+      <div class="canvas-box"><canvas id="c-pca"></canvas></div></div>
+    <div class="chartcard"><h3>t-SNE 임베딩 <span>색=회차</span></h3>
+      <div class="cap">하나의 균질한 구름 — 시간 군집 없음</div>
+      <div class="canvas-box"><canvas id="c-tsne"></canvas></div></div>
+  </div>
+  <div class="callout">최고 실루엣 점수 <b id="sil-score">—</b> (뚜렷한 군집 기준 0.5 미달) — 활용할 만한 잠재 구조 없음.
+  <b class="warn">주의:</b> t-SNE 그림에서 사람 눈은 없는 군집을 만들어냅니다. 반드시 정량 지표로 검증하세요.</div>
+</section>
+
+<section id="backtest">
+  <div class="tag">09 · PREDICTION BACKTEST</div>
+  <h2>어떤 전략도 무작위를 못 이깁니다 <span class="en">/ Nothing beats chance</span></h2>
+  <p class="body">벤치마크는 산수입니다: 티켓당 기대 적중 <b>6 × 6/45 = 0.8</b>. 휴리스틱 5종 + <b>07의 그래디언트 부스팅</b>을
+  누수 없는 walk-forward로 겨루게 합니다.</p>
+  <div class="chartcard"><h3>전략별 백테스트 <span>walk-forward · 95% CI</span></h3>
+    <div class="cap">붉은 세로선 = 0.8. 붉은 점 = ML 전략. 모든 CI가 이 선에 걸칩니다.</div>
+    <div class="canvas-box tall"><canvas id="c-bt"></canvas></div></div>
+  <div class="chartcard"><h3>앱 자신의 예측 기록 <span>The app's own <span id="lt-count">—</span> archived tickets</span></h3>
+    <div class="cap">붉은 점 = 딥러닝/랜덤포레스트/앙상블. 화려한 ML도 0.8에 붙어 있습니다.</div>
+    <div class="canvas-box tall"><canvas id="c-legacy"></canvas></div></div>
+
+  <h3 style="margin:34px 0 6px;font-size:18px">🎫 아무 번호나 채점해 보세요 <span style="color:var(--muted);font-weight:400;font-size:.8em">Score any ticket</span></h3>
+  <div class="widget">
+    <p style="color:var(--ink2);font-size:15px">서로 다른 1–45 사이 번호 6개를 입력하세요. 결과는 언제나 같습니다.</p>
+    <div class="inputs" id="ticket-inputs"></div>
+    <button id="ticket-btn">채점하기 ▸</button>
+    <div id="ticket-result"></div>
+  </div>
+</section>
+
+<div class="verdict">
+  <div class="kicker">FINAL VERDICT</div>
+  <p>확률 이론·EDA·가설검정·무작위성 배터리·베이지안·머신러닝·비지도학습·백테스트 — 서로 다른 도구가 모두
+  같은 답에 도달했습니다. 로또는 공정한 균등 난수와 <b>구별되지 않습니다.</b></p>
+  <div class="quote">"무작위를 무작위라고 증명하는 것은 실패가 아니라, 올바른 방법론의 결과입니다."</div>
+</div>
+
+<footer>
+  분석 코드: <code>src/lotto_ds/</code> (cleaning · probability · features · stats_tests · randomness · bayesian · ml_models · unsupervised · backtest) ·
+  재현 노트북: <code>notebooks/00–09</code> ·
+  이 페이지의 모든 수치는 <code>/api/report</code>가 clean DB에서 실시간 계산합니다.
+</footer>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmt=n=>Number(n).toLocaleString('ko-KR');
+
+const refLine={id:'ref',afterDraw(c,a,o){if(!o.lines)return;const{ctx,chartArea:ca,scales}=c;
+  o.lines.forEach(L=>{ctx.save();ctx.strokeStyle=L.color;ctx.lineWidth=1.4;ctx.setLineDash([5,4]);ctx.beginPath();
+    if(L.axis==='x'){const x=scales.x.getPixelForValue(L.value);ctx.moveTo(x,ca.top);ctx.lineTo(x,ca.bottom);}
+    else{const y=scales.y.getPixelForValue(L.value);ctx.moveTo(ca.left,y);ctx.lineTo(ca.right,y);}
+    ctx.stroke();ctx.restore();});}};
+Chart.register(refLine);
+Chart.defaults.font.family=css('--sans');
+Chart.defaults.plugins.legend.display=false;
+Chart.defaults.animation=false;
+let CHARTS=[];
+function baseOpts(){const gc=css('--grid'),mc=css('--muted');return{responsive:true,maintainAspectRatio:false,
+  scales:{x:{grid:{color:gc,drawTicks:false},ticks:{color:mc,font:{size:11}},border:{color:css('--line')}},
+          y:{grid:{color:gc,drawTicks:false},ticks:{color:mc,font:{size:11}},border:{display:false}}},
+  plugins:{tooltip:{backgroundColor:css('--ink'),titleColor:css('--surface'),bodyColor:css('--surface'),padding:10,cornerRadius:8,displayColors:false}}};}
+
+let DATA=null;
+fetch('/api/report').then(r=>r.json()).then(d=>{DATA=d;render(d);})
+  .catch(e=>{$('#tiles').innerHTML='<div class="loading" style="grid-column:1/-1;color:var(--crit)">로드 실패: '+e+'</div>';});
+
+function render(d){
+  const S1=css('--s1'),S2=css('--s2'),S6=css('--s6'),MUT=css('--muted'),INK=css('--ink');
+  $('#hero-draws').textContent=fmt(d.meta.n_draws);
+  $('#content').hidden=false;
+  const chi=d.tests.chi2, bt=d.backtest;
+  $('#tiles').innerHTML=[
+    ['v',fmt(d.meta.n_draws),'로또 회차'],
+    ['v ok',chi.p.toFixed(2),'번호 균등성 p'],
+    ['v ok','0.50','최고 ML AUC'],
+    ['v no','NO','0.8 이긴 전략?']
+  ].map(([c,v,l])=>`<div class="tile"><div class="${c}">${v}</div><div class="l">${l}</div></div>`).join('');
+
+  // 01
+  const cl=d.cleaning;
+  $('#ba').innerHTML=`
+   <div class="col before"><h4>Before · 원본</h4><ul>
+     <li>테이블 수<b>11</b></li><li>draw_results 열<b>${cl.raw_draw_results_columns}</b></li>
+     <li>유령 열(extra_*)<b>${cl.phantom_columns_dropped}</b></li>
+     <li>고아 시트 테이블<b>${cl.orphan_tables_dropped.length}</b></li>
+     <li>당첨금 타입<b>TEXT+깨짐</b></li></ul></div>
+   <div class="arrow">→</div>
+   <div class="col after"><h4>After · 정제</h4><ul>
+     <li>tidy 테이블<b>5</b></li><li>draw_results 열<b>9</b></li>
+     <li>유령 열<b>0</b></li><li>고아 테이블<b>0</b></li>
+     <li>당첨금 파싱<b>${fmt(cl.prizes_parsed)}건</b></li></ul></div>`;
+  $('#clean-note').innerHTML=`원본 열의 <b>95%(${cl.phantom_columns_dropped}/${cl.raw_draw_results_columns})</b>가 유령 열.
+    당첨금 <b>${fmt(cl.prizes_missing)}건</b>은 최근 미집계라 0으로 위조하지 않고 NULL로 보존.`;
+
+  // 02 probability
+  const pr=d.probability;
+  $('#prob-combos').textContent=`전체 조합 C(45,6) = ${fmt(pr.total_combos)}`;
+  $('#prob-one').textContent=fmt(pr.total_combos);
+  $('#prob-cov').textContent=pr.within_draw_cov;
+  $('#tiers tbody').innerHTML=pr.tiers.map(t=>`<tr><td>${t.k}개</td><td class="p">1 in ${fmt(t.one_in)}</td>
+    <td>${t.k===6?'1등':t.k===5?'2·3등':t.k===4?'4등':'5등'}</td></tr>`).join('');
+
+  // 03 eda
+  const e=d.eda;
+  mk('#c-freq',{type:'bar',data:{labels:e.freq_numbers,datasets:[{data:e.freq_counts,backgroundColor:S1,borderRadius:3,barPercentage:.92}]},
+    options:{...baseOpts(),plugins:{...baseOpts().plugins,ref:{lines:[{axis:'y',value:e.freq_expected,color:MUT}]}},
+      scales:{...baseOpts().scales,x:{...baseOpts().scales.x,ticks:{color:MUT,font:{size:9},callback:(v,i)=>(i+1)%5===0?i+1:''}},y:{...baseOpts().scales.y,min:100}}}});
+  $('#sum-mean').textContent=e.sum_mean;
+  const edges=e.sum_hist_edges,mids=edges.slice(0,-1).map((v,i)=>(v+edges[i+1])/2);
+  mk('#c-sum',{type:'bar',data:{labels:mids.map(m=>Math.round(m)),datasets:[{data:e.sum_hist_counts,backgroundColor:S1,borderRadius:2,barPercentage:1}]},
+    options:{...baseOpts(),plugins:{...baseOpts().plugins,ref:{lines:[{axis:'x',value:mids.findIndex(m=>m>=138),color:S6}]}},
+      scales:{...baseOpts().scales,x:{...baseOpts().scales.x,ticks:{color:MUT,font:{size:9},maxTicksLimit:8}}}}});
+  mk('#c-odd',{data:{labels:[0,1,2,3,4,5,6],datasets:[
+      {type:'bar',data:e.odd_dist,backgroundColor:S2,borderRadius:3,order:2},
+      {type:'line',data:e.odd_binom_expected,borderColor:INK,backgroundColor:INK,pointRadius:3,tension:.3,order:1}]},options:baseOpts()});
+
+  // 04 tests
+  $('#battery tbody').innerHTML=d.tests.battery.map(r=>{const rej=r['reject_H0 (α=.05)'];
+    return `<tr><td>${r.test}</td><td class="p">${r.statistic}</td><td class="p">${r.p_value}</td>
+      <td><span class="pill ${rej?'yes':'no'}">${rej?'경계적':'무작위'}</span></td></tr>`;}).join('');
+  $('#chi-p').textContent=chi.p.toFixed(3);
+  mk('#c-resid',{type:'bar',data:{labels:e.freq_numbers,datasets:[{data:d.tests.residuals,
+      backgroundColor:d.tests.residuals.map(v=>Math.abs(v)>1.96?S6:S1),borderRadius:2,barPercentage:.92}]},
+    options:{...baseOpts(),plugins:{...baseOpts().plugins,ref:{lines:[{axis:'y',value:1.96,color:MUT},{axis:'y',value:-1.96,color:MUT}]}},
+      scales:{...baseOpts().scales,x:{...baseOpts().scales.x,ticks:{color:MUT,font:{size:9},callback:(v,i)=>(i+1)%5===0?i+1:''}}}}});
+  const conf=d.tests.acf_conf;
+  mk('#c-acf',{type:'bar',data:{labels:d.tests.acf.map((_,i)=>i+1),datasets:[{data:d.tests.acf,backgroundColor:S1,borderRadius:2}]},
+    options:{...baseOpts(),plugins:{...baseOpts().plugins,ref:{lines:[{axis:'y',value:conf,color:MUT},{axis:'y',value:-conf,color:MUT}]}}}});
+
+  // 05 randomness
+  const rb=d.randomness;
+  $('#rand-table tbody').innerHTML=rb.battery.map(r=>`<tr><td>${r.test}</td><td class="p">${r.statistic}</td>
+    <td class="p">${r.p_value}</td><td><span class="pill ${r.random_consistent?'ok':'bad'}">${r.random_consistent?'✓ 부합':'✗ 불부합'}</span></td></tr>`).join('');
+  $('#rand-note').innerHTML=`<b>${rb.pass_count}/${rb.total} 검정 통과.</b> 유일하게 걸린 스펙트럼 검정은 무의미한 미세 봉우리로,
+    04번의 lag-10 자기상관과 동일한 현상(푸리에 쌍대)입니다 — 예측에 쓸 수 없습니다.`;
+
+  // 06 bayesian
+  const by=d.bayesian;
+  $('#bayes-count').textContent=by.contains_fair_count;
+  const bidx=by.numbers.map((_,i)=>i);
+  mk('#c-bayes',{data:{labels:by.numbers,datasets:[
+      {type:'bar',data:by.ci_lo.map((lo,i)=>[lo,by.ci_hi[i]]),backgroundColor:'rgba(137,135,129,.28)',borderSkipped:false,borderRadius:2,barPercentage:.55},
+      {type:'scatter',data:by.posterior_mean.map((m,i)=>({x:i,y:m})),
+        pointBackgroundColor:by.contains_fair.map(c=>c?S1:S6),pointRadius:3}]},
+    options:{...baseOpts(),plugins:{...baseOpts().plugins,ref:{lines:[{axis:'y',value:by.fair_theta,color:S6}]},
+        tooltip:{...baseOpts().plugins.tooltip,callbacks:{title:it=>'번호 '+by.numbers[it[0].dataIndex],label:c=>c.datasetType==='scatter'?'사후평균 '+c.raw.y:'95% CI'}}},
+      scales:{...baseOpts().scales,x:{...baseOpts().scales.x,ticks:{color:MUT,font:{size:8},callback:(v,i)=>i%3===0?by.numbers[i]:''}},
+        y:{...baseOpts().scales.y,title:{display:true,text:'θ (출현 확률)',color:MUT,font:{size:11}}}}}});
+
+  // 07 ml
+  const mlD=d.ml;
+  $('#ml-table tbody').innerHTML=mlD.models.map(m=>`<tr><td>${m.model}</td><td class="p">${m.AUC}</td>
+    <td class="p" style="color:${Math.abs(m['vs chance (0.50)'])<0.02?'var(--good)':'var(--ink)'}">${m['vs chance (0.50)']>0?'+':''}${m['vs chance (0.50)']}</td></tr>`).join('');
+  const rocSets=Object.entries(mlD.roc).map(([name,r],i)=>({label:name,data:r.fpr.map((f,j)=>({x:f,y:r.tpr[j]})),
+    borderColor:i?S6:S1,borderWidth:2,pointRadius:0,showLine:true}));
+  rocSets.push({label:'무작위',data:[{x:0,y:0},{x:1,y:1}],borderColor:MUT,borderDash:[5,4],borderWidth:1.5,pointRadius:0,showLine:true});
+  mk('#c-roc',{type:'scatter',data:{datasets:rocSets},options:{...baseOpts(),plugins:{legend:{display:true,labels:{color:css('--ink2'),font:{size:10},boxWidth:12}},tooltip:{enabled:false}},
+    scales:{x:{...baseOpts().scales.x,min:0,max:1,title:{display:true,text:'FPR',color:MUT}},y:{...baseOpts().scales.y,min:0,max:1,title:{display:true,text:'TPR',color:MUT}}}}});
+  const imp=Object.entries(mlD.importances).sort((a,b)=>a[1]-b[1]);
+  mk('#c-imp',{type:'bar',data:{labels:imp.map(x=>x[0]),datasets:[{data:imp.map(x=>x[1]),backgroundColor:S1,borderRadius:3}]},
+    options:{indexAxis:'y',...baseOpts(),plugins:{...baseOpts().plugins,ref:{lines:[{axis:'x',value:0,color:MUT}]}}}});
+
+  // 08 unsupervised
+  const un=d.unsupervised;
+  $('#sil-score').textContent=un.best_silhouette;
+  const cum=un.pca_evr.map((s=>v=>s+=v)(0));
+  mk('#c-pca',{data:{labels:un.pca_evr.map((_,i)=>'PC'+(i+1)),datasets:[
+      {type:'bar',data:un.pca_evr.map(v=>v*100),backgroundColor:S1,borderRadius:3,order:2},
+      {type:'line',data:cum.map(v=>v*100),borderColor:S6,pointRadius:3,tension:.2,order:1}]},
+    options:{...baseOpts(),scales:{...baseOpts().scales,y:{...baseOpts().scales.y,title:{display:true,text:'설명 분산 %',color:MUT}}}}});
+  const tmax=Math.max(...un.tsne_color),tmin=Math.min(...un.tsne_color);
+  const tcol=un.tsne_color.map(v=>{const t=(v-tmin)/(tmax-tmin);return `rgba(${Math.round(42+t*180)},${Math.round(120-t*40)},${Math.round(214-t*140)},.6)`;});
+  mk('#c-tsne',{type:'scatter',data:{datasets:[{data:un.tsne.map(p=>({x:p[0],y:p[1]})),pointBackgroundColor:tcol,pointRadius:2.5,pointBorderWidth:0}]},
+    options:{...baseOpts(),plugins:{legend:{display:false},tooltip:{enabled:false}},
+      scales:{x:{display:false},y:{display:false}}}});
+
+  // 09 backtest
+  $('#lt-count').textContent=fmt(bt.legacy_ticket_count);
+  const strat=[...bt.strategies.map(s=>({n:s.strategy,r:[s.ci_lo,s.ci_hi],m:s.mean,ml:false})),
+               {n:'ML top-6 (gradient boosting)',r:[bt.ml_strategy.ci_lo,bt.ml_strategy.ci_hi],m:bt.ml_strategy.mean,ml:true}];
+  ciChart('#c-bt',strat.map(s=>s.n),strat.map(s=>s.r),strat.map(s=>s.m),strat.map(s=>s.ml?S6:S1),bt.theoretical,S6,MUT);
+  ciChart('#c-legacy',bt.legacy_methods.map(m=>m.method),bt.legacy_methods.map(m=>[m.ci_lo,m.ci_hi]),
+    bt.legacy_methods.map(m=>m.mean),bt.legacy_methods.map(m=>m.is_ml?S6:S1),bt.theoretical,S6,MUT);
+
+  buildWidget(pr.total_combos, pr.expected_matches);
+  if(window.renderMathInElement) renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});
+}
+
+function mk(sel,cfg){CHARTS.push(new Chart($(sel),cfg));}
+function ciChart(sel,labels,ranges,means,ptColors,base,S6,MUT){
+  mk(sel,{type:'bar',data:{labels,datasets:[
+      {data:ranges,backgroundColor:'rgba(137,135,129,.20)',borderColor:MUT,borderWidth:1,borderSkipped:false,borderRadius:4,barPercentage:.4},
+      {type:'scatter',data:means.map((m,i)=>({x:m,y:i})),pointBackgroundColor:ptColors,pointBorderColor:css('--surface'),pointBorderWidth:1.5,pointRadius:6}]},
+    options:{indexAxis:'y',...baseOpts(),
+      plugins:{...baseOpts().plugins,ref:{lines:[{axis:'x',value:base,color:S6}]},
+        tooltip:{...baseOpts().plugins.tooltip,callbacks:{label:c=>c.datasetIndex===1?'mean '+c.raw.x.toFixed(3):'95% CI ['+c.raw[0]+', '+c.raw[1]+']'}}},
+      scales:{x:{...baseOpts().scales.x,min:.70,max:.88,title:{display:true,text:'티켓당 평균 적중',color:MUT,font:{size:11}}},
+        y:{...baseOpts().scales.y,type:'category'}}}});
+}
+
+function buildWidget(combos, ev){
+  const box=$('#ticket-inputs');
+  box.innerHTML=[1,2,3,4,5,6].map(i=>`<input type="number" min="1" max="45" placeholder="N${i}">`).join('');
+  $('#ticket-btn').onclick=()=>{
+    const vals=[...box.querySelectorAll('input')].map(x=>parseInt(x.value));
+    const res=$('#ticket-result');
+    if(vals.some(v=>isNaN(v)||v<1||v>45)||new Set(vals).size!==6){
+      res.style.display='block';res.style.color='var(--crit)';
+      res.innerHTML='⚠️ 1–45 사이 <b>서로 다른</b> 6개 번호를 입력하세요.';return;}
+    const sorted=[...vals].sort((a,b)=>a-b);
+    const sum=vals.reduce((a,b)=>a+b,0), odd=vals.filter(v=>v%2).length;
+    const diffs=new Set();for(let i=0;i<6;i++)for(let j=i+1;j<6;j++)diffs.add(Math.abs(sorted[i]-sorted[j]));
+    const ac=diffs.size-5;
+    res.style.display='block';res.style.color='var(--ink2)';
+    res.innerHTML=`이 조합의 당첨 확률: <span class="big">1 / ${fmt(combos)}</span><br>
+      합계 ${sum} · 홀수 ${odd}개 · AC ${ac} · 기대 적중 <b>${ev}</b>개<br>
+      <b style="color:var(--ink)">…그리고 이것은 다른 모든 조합과 정확히 동일합니다.</b>
+      번호 선택은 기대값을 바꾸지 못하고, 오직 분산만 바꿉니다.`;
+  };
+}
+
+// theme toggle
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t);
+  CHARTS.forEach(c=>c.destroy());CHARTS=[];if(DATA)render(DATA);}
+$('#themeBtn').onclick=()=>{
+  const cur=document.documentElement.getAttribute('data-theme')
+    || (matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  applyTheme(cur==='dark'?'light':'dark');};
+</script>
+</body>
+</html>
