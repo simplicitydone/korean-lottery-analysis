@@ -149,6 +149,19 @@ footer code{font-family:var(--mono);color:var(--ink2)}
 .detail-box{background:var(--plane);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:8px;font-size:13px}
 .detail-box .m{padding:6px 0;border-top:1px solid var(--border)}
 .detail-box .m:first-child{border-top:none}
+.score-head{display:flex;align-items:center;gap:18px;margin-bottom:14px}
+.grade-badge{width:72px;height:72px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:38px;font-weight:800;color:#fff;flex:0 0 auto}
+.grade-S{background:#eab308}.grade-A{background:#22c55e}.grade-B{background:var(--s1)}.grade-C{background:#f59e0b}.grade-F{background:#94a3b8}
+.score-num{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.score-lbl{font-size:13px;color:var(--muted)}
+.crit{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--border);font-size:14px}
+.crit:first-child{border-top:none}
+.crit .cn{width:150px;color:var(--ink2)}
+.crit .cv{width:78px;font-variant-numeric:tabular-nums;font-weight:600}
+.crit .ct{flex:1;height:8px;background:var(--grid);border-radius:4px;position:relative;min-width:60px}
+.crit .cf{position:absolute;left:0;top:0;height:100%;border-radius:4px}
+.crit .cf.full{background:var(--good)}.crit .cf.half{background:var(--warn)}.crit .cf.none{background:var(--crit)}
+.crit .cg{width:80px;text-align:right;font-family:var(--mono);font-size:12px;color:var(--muted)}
 @media(max-width:720px){.tiles{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.ba{grid-template-columns:1fr}.ba .arrow{transform:rotate(90deg);justify-content:center}.explorer-row .name{width:100px}}
 </style>
 </head>
@@ -368,9 +381,12 @@ footer code{font-family:var(--mono);color:var(--ink2)}
 </section>
 
 <section id="check">
-  <div class="tag">부록 C · CHECKER</div>
-  <h2>번호 체커 <span class="en">/ What would you have won?</span></h2>
-  <p class="body">번호를 입력하면 <b>실제 과거 당첨 회차</b>와 비교해 등수를 알려줍니다. (기본: 최신 회차)</p>
+  <div class="tag">부록 C · EVALUATOR</div>
+  <h2>번호 평가기 <span class="en">/ Pattern-fit score</span></h2>
+  <p class="body">내 번호가 <b>과거 당첨 조합의 '모양'</b>(합계·홀짝·고저·AC·연속·분포)과 얼마나 비슷한지 점수화합니다.
+  덤으로 실제 과거 회차와 비교해 등수도 확인할 수 있습니다.</p>
+  <div class="callout warn">⚠️ <b>중요:</b> 점수는 당첨 확률과 <b>무관</b>합니다. 모든 조합의 확률은 동일합니다.
+  높은 점수(흔한 모양)는 오히려 당첨 시 <b>더 많은 사람과 상금을 나눠야</b> 할 수 있습니다.</div>
   <div class="tabs" id="check-tabs"><button data-t="lotto" class="on">로또 6/45</button><button data-t="pension">연금복권</button></div>
   <div class="widget">
     <div id="check-lotto-form">
@@ -381,10 +397,12 @@ footer code{font-family:var(--mono);color:var(--ink2)}
         <span style="align-self:center;color:var(--muted)">조 +</span>
         <span id="check-pension-digits"></span></div>
     </div>
-    <div style="display:flex;gap:10px;align-items:center;margin-top:6px">
-      <button id="check-btn">✓ 결과 확인</button>
+    <div style="display:flex;gap:10px;align-items:center;margin-top:6px;flex-wrap:wrap">
+      <button id="score-btn">📊 통계 점수 매기기</button>
+      <button id="check-btn" style="background:var(--card);color:var(--ink2);border:1px solid var(--border)">🎯 과거 회차와 비교</button>
       <select id="check-draw" style="padding:9px;border-radius:8px;background:var(--plane);color:var(--ink);border:1px solid var(--line);font-size:13px"></select>
     </div>
+    <div id="score-out" style="margin-top:16px;display:none"></div>
     <div id="check-out" style="margin-top:16px;display:none"></div>
   </div>
 </section>
@@ -605,8 +623,9 @@ function setupAppendix(d){
   fillDrawSelect(d);
   bindTabs('#check-tabs',t=>{CHECK_TAB=t;
     $('#check-lotto-form').hidden=t!=='lotto';$('#check-pension-form').hidden=t==='lotto';
-    fillDrawSelect(d);$('#check-out').style.display='none';});
+    fillDrawSelect(d);$('#check-out').style.display='none';$('#score-out').style.display='none';});
   $('#check-btn').onclick=()=>runCheck(d);
+  $('#score-btn').onclick=runEvaluate;
 
   // generator
   $('#gen-disclaimer').textContent=d.records? '생성된 조합은 재미·교육용입니다. 어떤 방법도 당첨 확률을 높이지 않으며, 모든 조합은 정확히 동일한 확률입니다.':'';
@@ -675,8 +694,41 @@ function fillDrawSelect(d){
   const list=CHECK_TAB==='pension'?d.pension.latest:d.lotto_latest;
   $('#check-draw').innerHTML=list.map((x,i)=>`<option value="${x.draw_no}">${x.draw_no}회 (${x.draw_date})${i===0?' · 최신':''}</option>`).join('');
 }
+function runEvaluate(){
+  const out=$('#score-out');out.style.display='block';$('#check-out').style.display='none';
+  out.innerHTML='<span style="color:var(--muted)">평가 중…</span>';
+  let body;
+  if(CHECK_TAB==='lotto'){
+    const nums=[...$('#check-lotto-inputs').querySelectorAll('input')].map(x=>parseInt(x.value));
+    body={numbers:nums};
+  } else {
+    const g=parseInt($('#pen-group-in').value);
+    const digits=[...$('#check-pension-digits').querySelectorAll('input')].map(x=>parseInt(x.value));
+    body={group:g,digits};
+  }
+  fetch(`/api/evaluate/${CHECK_TAB}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    .then(r=>r.json()).then(res=>{
+      if(res.error){out.innerHTML=`<span style="color:var(--crit)">⚠️ ${res.error}</span>`;return;}
+      const maxTotal=res.criteria.reduce((a,c)=>a+c.max,0);
+      const rows=res.criteria.map(c=>{
+        const cls=c.pass?'full':(c.partial?'half':'none');
+        return `<div class="crit"><span class="cn">${c.name}</span><span class="cv">${c.value}</span>
+          <span class="ct"><span class="cf ${cls}" style="width:${Math.round(c.got/c.max*100)}%"></span></span>
+          <span class="cg">${c.got}/${c.max} · ${c.target}</span></div>`;}).join('');
+      const label=CHECK_TAB==='lotto'
+        ? `<span class="balls" style="display:inline-flex">${lottoBalls(res.numbers)}</span>`
+        : `<span class="balls" style="display:inline-flex">${pensionBalls(res.group,res.digits)}</span>`;
+      out.innerHTML=`<div style="margin-bottom:10px">${label}</div>
+        <div class="score-head"><div class="grade-badge grade-${res.grade}">${res.grade}</div>
+          <div><div class="score-num">${res.score}<span style="font-size:18px;color:var(--muted)">/${maxTotal}</span></div>
+          <div class="score-lbl">패턴 적합도 점수 (typicality)</div></div></div>
+        ${rows}
+        <div class="callout" style="margin-top:14px">${res.note}</div>`;
+    });
+}
+
 function runCheck(d){
-  const draw_no=parseInt($('#check-draw').value);const out=$('#check-out');out.style.display='block';
+  const draw_no=parseInt($('#check-draw').value);const out=$('#check-out');out.style.display='block';$('#score-out').style.display='none';
   if(CHECK_TAB==='lotto'){
     const nums=[...$('#check-lotto-inputs').querySelectorAll('input')].map(x=>parseInt(x.value));
     fetch('/api/check/lotto',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({numbers:nums,draw_no})})

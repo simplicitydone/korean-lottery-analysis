@@ -23,6 +23,7 @@ from src.lotto_ds import CLEAN_DB, viz
 from src.lotto_ds import backtest as bt
 from src.lotto_ds import bayesian as by
 from src.lotto_ds import cleaning, features
+from src.lotto_ds import evaluate as ev
 from src.lotto_ds import generator as gen
 from src.lotto_ds import ml_models as ml
 from src.lotto_ds import pension as pn
@@ -273,6 +274,26 @@ def generate_pension_route():
     count = max(1, min(int(request.args.get("count", 5)), 10))
     seed = request.args.get("seed", type=int)
     return jsonify(_to_native(gen.generate_all_pension(count=count, seed=seed or 0)))
+
+
+# ─────────────────────────── pattern-fit evaluators ─────────────────────────
+
+@app.route("/api/evaluate/lotto", methods=["POST"])
+def evaluate_lotto_route():
+    data = request.get_json(silent=True) or {}
+    try:
+        return jsonify(_to_native(ev.evaluate_lotto(data.get("numbers", []))))
+    except (ValueError, TypeError) as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.route("/api/evaluate/pension", methods=["POST"])
+def evaluate_pension_route():
+    data = request.get_json(silent=True) or {}
+    try:
+        return jsonify(_to_native(ev.evaluate_pension(data.get("group"), data.get("digits", []))))
+    except (ValueError, TypeError) as e:
+        return jsonify({"error": str(e)}), 400
 
 
 # ─────────────────────────── ticket checkers ────────────────────────────────

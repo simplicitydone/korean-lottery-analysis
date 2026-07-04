@@ -45,3 +45,25 @@ def test_records_handles_both_hit_schemas():
     assert rec._method_hits({"hits": [1, 0, 2]}) == [1, 0, 2]
     assert rec._method_hits({"hits_1st": [0, 1]}) == [0, 1]
     assert rec._method_hits({"sets_generated": []}) == []
+
+
+def test_evaluate_lotto_scores():
+    from src.lotto_ds import evaluate as ev
+    balanced = ev.evaluate_lotto([7, 13, 22, 28, 35, 42])
+    atypical = ev.evaluate_lotto([1, 2, 3, 4, 5, 6])
+    assert balanced["score"] > atypical["score"]      # typical shape scores higher
+    assert balanced["grade"] in ("S", "A")
+    assert 0 <= atypical["score"] <= 100
+    assert balanced["note"]                            # honest caveat always present
+    assert sum(c["got"] for c in balanced["criteria"]) == balanced["score"]
+
+
+def test_evaluate_validation():
+    from src.lotto_ds import evaluate as ev
+    import pytest
+    with pytest.raises(ValueError):
+        ev.evaluate_lotto([1, 2, 3, 4, 5])            # too few
+    with pytest.raises(ValueError):
+        ev.evaluate_lotto([1, 2, 3, 4, 5, 46])        # out of range
+    with pytest.raises(ValueError):
+        ev.evaluate_pension(9, [1, 2, 3, 4, 5, 6])    # bad group
