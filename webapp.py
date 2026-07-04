@@ -17,13 +17,18 @@ import pandas as pd
 from flask import Flask, jsonify, send_from_directory
 from statsmodels.tsa.stattools import acf
 
+from flask import request
+
 from src.lotto_ds import CLEAN_DB, viz
 from src.lotto_ds import backtest as bt
 from src.lotto_ds import bayesian as by
 from src.lotto_ds import cleaning, features
+from src.lotto_ds import generator as gen
 from src.lotto_ds import ml_models as ml
+from src.lotto_ds import pension as pn
 from src.lotto_ds import probability as pb
 from src.lotto_ds import randomness as rd
+from src.lotto_ds import records as rec
 from src.lotto_ds import stats_tests as st
 from src.lotto_ds import unsupervised as un
 
@@ -218,6 +223,20 @@ def build_report() -> dict:
             "tsne": [[round(float(x), 2), round(float(y), 2)] for x, y in tsne],
             "tsne_color": feat["draw_no"].astype(int).tolist(),
         },
+        "pension": pn.analysis_payload(),
+        "records": {
+            "lotto_leaderboard": rec.method_leaderboard("LOTTO"),
+            "pension_leaderboard": rec.method_leaderboard("PENSION"),
+            "lotto_coverage": rec.coverage("LOTTO"),
+            "pension_coverage": rec.coverage("PENSION"),
+            "lotto_recent": rec.lotto_records(limit=30),
+            "pension_recent": rec.pension_records(limit=18),
+        },
+        "lotto_latest": [
+            {"draw_no": int(r.draw_no), "draw_date": str(r.draw_date),
+             "numbers": [int(r[c]) for c in cleaning.WIN_COLS], "bonus": int(r.bonus)}
+            for _, r in draws.tail(8).iloc[::-1].iterrows()
+        ],
     }
 
 
@@ -238,6 +257,108 @@ def report():
 @app.route("/api/health")
 def health():
     return jsonify({"status": "ok", "clean_db": CLEAN_DB.exists()})
+
+
+# ─────────────────────────── prediction generators ──────────────────────────
+
+@app.route("/api/generate/lotto")
+def generate_lotto_route():
+    count = max(1, min(int(request.args.get("count", 5)), 10))
+    seed = request.args.get("seed", type=int)
+    return jsonify(_to_native(gen.generate_all_lotto(count=count, seed=seed or 0)))
+
+
+@app.route("/api/generate/pension")
+def generate_pension_route():
+    count = max(1, min(int(request.args.get("count", 5)), 10))
+    seed = request.args.get("seed", type=int)
+    return jsonify(_to_native(gen.generate_all_pension(count=count, seed=seed or 0)))
+
+
+# ─────────────────────────── ticket checkers ────────────────────────────────
+
+LOTTO_TIERS = {6: "1등", "5b": "2등", 5: "3등", 4: "4등", 3: "5등"}
+
+
+@app.route("/api/check/lotto", methods=["POST"])
+def check_lotto_route():
+    data = request.get_json(silent=True) or {}
+    try:
+        nums = sorted(int(n) for n in data.get("numbers", []))
+    except (TypeError, ValueError):
+        return jsonify({"error": "숫자 형식이 올바르지 않습니다."}), 400
+    if len(nums) != 6 or len(set(nums)) != 6 or any(n < 1 or n > 45 for n in nums):
+        return jsonify({"error": "서로 다른 1~45 번호 6개를 입력하세요."}), 400
+    draws = cleaning.load_clean("draws")
+    draw_no = data.get("draw_no")
+    row = draws.iloc[-1] if not draw_no else draws[draws["draw_no"] == int(draw_no)].iloc[0]
+    win = {int(row[c]) for c in cleaning.WIN_COLS}
+    bonus = int(row["bonus"])
+    matched = sorted(win & set(nums))
+    m = len(matched)
+    if m == 6:
+        tier = "1등"
+    elif m == 5 and bonus in nums:
+        tier = "2등"
+    else:
+        tier = LOTTO_TIERS.get(m, "꽝")
+    return jsonify(_to_native({
+        "draw_no": int(row["draw_no"]), "draw_date": str(row["draw_date"]),
+        "win_numbers": sorted(win), "bonus": bonus, "your_numbers": nums,
+        "matched": matched, "match_count": m, "bonus_match": bonus in nums, "tier": tier,
+    }))
+
+
+@app.route("/api/check/pension", methods=["POST"])
+def check_pension_route():
+    data = request.get_json(silent=True) or {}
+    try:
+        r = pn.check_ticket(data.get("group"), data.get("digits", []), data.get("draw_no"))
+    except (ValueError, IndexError) as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify(_to_native({
+        "draw_no": r.draw_no, "win_group": r.win_group, "win_digits": r.win_digits,
+        "your_group": int(data.get("group")), "your_digits": [int(d) for d in data.get("digits")],
+        "matched_trailing": r.matched_trailing, "group_match": r.group_match,
+        "tier": r.tier, "one_in": r.one_in, "prize": r.prize,
+    }))
+
+
+# ─────────────────────────── records & per-draw ─────────────────────────────
+
+@app.route("/api/records/<mode>")
+def records_route(mode):
+    limit = max(1, min(int(request.args.get("limit", 60)), 500))
+    if mode.upper() == "PENSION":
+        return jsonify(_to_native(rec.pension_records(limit)))
+    return jsonify(_to_native(rec.lotto_records(limit)))
+
+
+@app.route("/api/records/detail/<mode>/<int:draw_no>")
+def record_detail_route(mode, draw_no):
+    return jsonify(_to_native(rec.draw_detail(draw_no, mode)))
+
+
+@app.route("/api/draw/lotto/<int:n>")
+def draw_analysis_route(n):
+    """Per-회차 analysis: this draw's shape features vs the whole-history distribution."""
+    feat = features.draw_features()
+    if n not in set(feat["draw_no"]):
+        return jsonify({"error": "회차를 찾을 수 없습니다."}), 404
+    row = feat[feat["draw_no"] == n].iloc[0]
+    metrics = ["sum", "odd_count", "high_count", "range", "max_gap", "consecutive_pairs",
+               "ac_value", "decades_covered"]
+    out = {"draw_no": n, "draw_date": str(row["draw_date"]), "features": {}}
+    for mcol in metrics:
+        val = float(row[mcol])
+        pct = float((feat[mcol] <= val).mean() * 100)
+        out["features"][mcol] = {"value": val, "percentile": round(pct, 1),
+                                 "pop_mean": round(float(feat[mcol].mean()), 2)}
+    draws = cleaning.load_clean("draws")
+    drow = draws[draws["draw_no"] == n].iloc[0]
+    out["numbers"] = sorted(int(drow[c]) for c in cleaning.WIN_COLS)
+    out["bonus"] = int(drow["bonus"])
+    return jsonify(_to_native(out))
 
 
 if __name__ == "__main__":
