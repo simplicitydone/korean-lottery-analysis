@@ -11,13 +11,12 @@ Run:  python webapp.py        (dev)   ·   waitress-serve --port=5001 webapp:app
 from __future__ import annotations
 
 import logging
+import threading
 
 import numpy as np
 import pandas as pd
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
 from statsmodels.tsa.stattools import acf
-
-from flask import request
 
 from src.lotto_ds import CLEAN_DB, viz
 from src.lotto_ds import backtest as bt
@@ -39,6 +38,26 @@ log = logging.getLogger("lotto_ds.webapp")
 app = Flask(__name__, static_folder="static_report", static_url_path="")
 
 _REPORT_CACHE: dict | None = None
+_CACHE_LOCK = threading.Lock()
+
+
+def get_report() -> dict:
+    """Return the cached report, building it once under a lock (no double-build race)."""
+    global _REPORT_CACHE
+    with _CACHE_LOCK:
+        if _REPORT_CACHE is None:
+            log.info("building report payload ...")
+            _REPORT_CACHE = _to_native(build_report())
+        return _REPORT_CACHE
+
+
+def warm_cache() -> None:
+    """Populate the report cache ahead of the first visitor (call at startup)."""
+    try:
+        get_report()
+        log.info("report cache warm.")
+    except Exception:
+        log.exception("report cache warm failed; will build lazily on first request")
 
 
 def _to_native(obj):
@@ -248,11 +267,7 @@ def index():
 
 @app.route("/api/report")
 def report():
-    global _REPORT_CACHE
-    if _REPORT_CACHE is None:
-        log.info("building report payload (first request) ...")
-        _REPORT_CACHE = _to_native(build_report())
-    return jsonify(_REPORT_CACHE)
+    return jsonify(get_report())
 
 
 @app.route("/api/health")

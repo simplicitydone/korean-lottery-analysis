@@ -14,13 +14,15 @@
 # # 01 · 데이터 정제 (Data Cleaning)
 #
 # > **로또 6/45 & 연금복권 — 정직한 데이터 사이언스 스터디**
-# > Part 1 of 4 · *Cleaning → EDA → Hypothesis Testing → Prediction Backtest*
+# > Part 1 · *Cleaning → Probability → EDA → Testing → … → Verdict*
 #
-# 이 프로젝트의 원본 데이터 `lottery.db`는 스프레드시트 워크북을 그대로 SQLite로 덤프한 파일입니다.
-# 값(당첨번호) 자체는 대체로 멀쩡하지만, **스키마는 엉망**입니다. 실무에서 흔히 마주치는 형태이며,
-# 분석에 들어가기 전에 반드시 정리해야 합니다.
+# 정직하게 시작합시다: 이 프로젝트의 원본 `lottery.db`에서 **당첨번호 값 자체는 이미 깨끗했습니다.**
+# 중복·누락 회차도, 1–45 범위를 벗어난 값도, 결측도 없었습니다 (아래에서 직접 확인합니다).
+# 그래서 이 노트북은 "지저분한 값을 고치는" 이야기가 아니라, **스키마 위생(schema hygiene)** 이야기입니다 —
+# 스프레드시트를 SQLite로 덤프하며 딸려 온 구조적 잡동사니를 걷어내는 일. 실무 정제의 큰 축이 바로 이것입니다.
 #
-# This notebook documents three concrete kinds of dirt and the pipeline that removes them:
+# This notebook documents three concrete kinds of *structural* dirt (not bad values) and the pipeline
+# that removes them:
 #
 # 1. **Phantom columns** — 399 leftover `extra_*` columns from trailing spreadsheet cells.
 # 2. **Type/encoding corruption** — prize amounts stored as TEXT with a mojibake currency suffix.
