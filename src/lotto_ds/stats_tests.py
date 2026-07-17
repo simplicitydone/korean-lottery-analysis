@@ -63,11 +63,18 @@ def chi_square_number_uniformity(draws: pd.DataFrame | None = None) -> TestResul
     flat = draws[WIN_COLS].to_numpy(dtype=int).ravel()
     observed = pd.Series(flat).value_counts().reindex(range(1, LOTTO_NUMBER_MAX + 1), fill_value=0).sort_index()
     expected = np.full(LOTTO_NUMBER_MAX, observed.sum() / LOTTO_NUMBER_MAX)
-    chi2, p = stats.chisquare(observed.to_numpy(), expected)
+    # The six picks per draw are drawn WITHOUT replacement, so each number's count is
+    # Binomial(N, 6/45) with variance E·(1−6/45), not the Poisson variance E that a plain
+    # Σ(O−E)²/E assumes. The uncorrected Pearson statistic is under-dispersed (E[χ²]≈39, not 44)
+    # and biased toward "fail to reject"; dividing each cell by (1−6/45) restores ~χ²₄₄
+    # calibration — a 6k-draw WOR Monte-Carlo null agrees (p≈0.92 vs the naive 0.97).
+    p_fair = LOTTO_PICKS / LOTTO_NUMBER_MAX
+    chi2 = float((((observed.to_numpy() - expected) ** 2) / (expected * (1 - p_fair))).sum())
+    p = float(stats.chi2.sf(chi2, LOTTO_NUMBER_MAX - 1))
     return TestResult(
         "번호 균등성 카이제곱 (number uniformity χ²)",
         chi2, p, df=LOTTO_NUMBER_MAX - 1,
-        detail=f"n={len(draws)} draws, expected {expected[0]:.1f}/number",
+        detail=f"n={len(draws)} draws, expected {expected[0]:.1f}/number (비복원 분산보정 ×1/(1−6/45))",
     )
 
 

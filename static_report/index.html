@@ -171,7 +171,7 @@ footer code{font-family:var(--mono);color:var(--ink2)}
   <div class="kicker">데이터 사이언스 스터디 · Korean Lottery</div>
   <h1>로또는 예측할 수 있을까?<br><em>정직한 답은 "아니오"</em>입니다.</h1>
   <p class="lede">로또 6/45 <b id="hero-draws">—</b>회 데이터를 <b>정제 → 확률 → EDA → 검정 → 무작위성 → 베이지안 → ML → 비지도 → 백테스트</b>의
-  9단계로 분석했습니다. 결론: 두 복권은 <b>공정한 균등 난수와 통계적으로 구별되지 않습니다.</b>
+  9단계로 분석했습니다. 결론: 두 복권에서 <b>예측·수익에 쓸 신호는 없습니다</b> — 약한 시간 구조는 검출되나(스펙트럼 p≈0.003) 효과가 미미해 활용 불가입니다.
   이 페이지는 예측이 아니라 <b>방법론</b>을 보여줍니다.</p>
   <div class="tiles" id="tiles"><div class="loading" style="grid-column:1/-1">분석 로딩 중…</div></div>
   <nav class="toc">
@@ -216,7 +216,8 @@ footer code{font-family:var(--mono);color:var(--ink2)}
   </div>
   <table id="tiers"><thead><tr><th>맞춘 개수</th><th>확률</th><th>등수</th></tr></thead><tbody></tbody></table>
   <div class="callout"><b>핵심:</b> 티켓당 기대 적중 <b>0.8</b>은 어떤 번호를 고르든 변하지 않습니다 (09 백테스트의 기준선).
-  개별 조합은 모두 정확히 <span id="prob-one" class="p"></span>분의 1로 동일합니다.</div>
+  개별 조합은 모두 정확히 <span id="prob-one" class="p"></span>분의 1로 동일합니다.
+  <span style="color:var(--muted)">표의 '2·3등'은 5개 일치 확률의 합계이며, 2등(보너스 일치)은 1/1,357,510로 3등(1/35,724)보다 약 38배 희귀합니다.</span></div>
   <details><summary>독립 vs 종속 — 로또와 연금복권의 근본 차이</summary><div class="inner">
     <p>로또는 <b>비복원</b> 추출이라 한 추첨 내 번호끼리 <b>음의 상관</b>(종속)을 가집니다:
     $\mathrm{Cov}(\mathbb{1}_i,\mathbb{1}_j)=-\tfrac{p(1-p)}{N-1}=$ <span id="prob-cov" class="p"></span>.
@@ -254,11 +255,12 @@ footer code{font-family:var(--mono);color:var(--ink2)}
       <div class="cap">±1.96 밖 = 붉은색. χ² p = <b id="chi-p">—</b></div>
       <div class="canvas-box"><canvas id="c-resid"></canvas></div></div>
     <div class="chartcard"><h3>합계 자기상관 <span>ACF</span></h3>
-      <div class="cap">회색 밴드 = 95% 백색잡음. 뚫는 신호 없음.</div>
+      <div class="cap" id="acf-cap">회색 밴드 = 95% 백색잡음.</div>
       <div class="canvas-box"><canvas id="c-acf"></canvas></div></div>
   </div>
-  <div class="callout warn"><b>효과크기 & 검정력:</b> Cohen's w ≈ 0.06 (‘작음’ 0.1에도 미달), 작은 효과를 잡을 검정력은 ≈ 1.0.
-  즉 실질적 편향이 있었다면 거의 확실히 잡아냈을 것 — <b>귀무결과는 데이터 부족이 아니라 진짜 무편향</b>입니다.</div>
+  <div class="callout warn"><b>효과크기 & 검정력:</b> Cohen's w ≈ 0.06 (‘작음’ 0.1에도 미달), 작은 효과(w=0.1)를 잡을 검정력은 ≈ 1.0.
+  즉 실질적 <b>빈도 편향</b>이 있었다면 거의 확실히 잡아냈을 것 — 번호 빈도의 귀무결과는 진짜 무편향입니다.
+  단, 이는 번호별 <b>출현 빈도</b>에 한한 것이며 <b>시간적 자기상관</b>은 04·05에서 별도로 확인합니다 (약한 신호 존재).</div>
 </section>
 
 <section id="rand">
@@ -278,7 +280,7 @@ footer code{font-family:var(--mono);color:var(--ink2)}
   <div class="formula">$$\theta_i\mid k_i \sim \mathrm{Beta}(\alpha+k_i,\ \beta+N-k_i),\qquad \theta_{\text{fair}}=\tfrac{6}{45}\approx0.133$$</div>
   <div class="chartcard">
     <h3>번호별 확률의 95% 신용구간 <span>forest plot</span></h3>
-    <div class="cap">점=사후평균, 세로선=공정값 6/45. <b id="bayes-count">—</b>/45 구간이 공정값 포함 (나머지는 우연 수준).</div>
+    <div class="cap">점=사후평균, 세로선=공정값 6/45. <b id="bayes-count">—</b>/45 구간이 공정값 포함<span id="bayes-out"></span>.</div>
     <div class="canvas-box tall"><canvas id="c-bayes"></canvas></div>
   </div>
   <div class="callout"><b>축소(shrinkage):</b> 사후 평균은 잡음 많은 경험적 비율을 공정값 6/45 쪽으로 끌어당깁니다 —
@@ -308,8 +310,8 @@ footer code{font-family:var(--mono);color:var(--ink2)}
   <h2>숨은 군집은 없다 <span class="en">/ No hidden structure</span></h2>
   <p class="body">레이블 없이 데이터 자체의 구조를 찾습니다. PCA·k-means·t-SNE 모두 "군집 없음"으로 수렴합니다.</p>
   <div class="grid2">
-    <div class="chartcard"><h3>PCA 설명 분산 <span>지배 성분 없음</span></h3>
-      <div class="cap">막대=개별, 선=누적. 구조가 있다면 몇 성분이 대부분을 설명해야 함</div>
+    <div class="chartcard"><h3>PCA 설명 분산 <span>피처 상관의 산물</span></h3>
+      <div class="cap">막대=개별, 선=누적. 상위 2성분이 ~51%지만 이는 파생 피처들이 서로 상관돼서(예: 합계↔고번호수 r≈0.88)이며 무작위성과는 무관 — 군집 판정은 아래 실루엣으로 합니다.</div>
       <div class="canvas-box"><canvas id="c-pca"></canvas></div></div>
     <div class="chartcard"><h3>t-SNE 임베딩 <span>색=회차</span></h3>
       <div class="cap">하나의 균질한 구름 — 시간 군집 없음</div>
@@ -431,7 +433,7 @@ footer code{font-family:var(--mono);color:var(--ink2)}
 <div class="verdict">
   <div class="kicker">FINAL VERDICT</div>
   <p>확률 이론·EDA·가설검정·무작위성 배터리·베이지안·머신러닝·비지도학습·백테스트 — 서로 다른 도구가 모두
-  같은 답에 도달했습니다. 로또는 공정한 균등 난수와 <b>구별되지 않습니다.</b></p>
+  같은 답에 도달했습니다. 로또는 <b>예측·수익 관점에서</b> 공정한 균등 난수와 구별되지 않습니다 — 통계적으로 유의한 미세 구조(합계 자기상관·스펙트럼)는 있으나 어떤 전략도 기준선 0.8을 넘지 못합니다.</p>
   <div class="quote">"무작위를 무작위라고 증명하는 것은 실패가 아니라, 올바른 방법론의 결과입니다."</div>
 </div>
 
@@ -474,7 +476,7 @@ function render(d){
   $('#tiles').innerHTML=[
     ['v',fmt(d.meta.n_draws),'로또 회차'],
     ['v ok',chi.p.toFixed(2),'번호 균등성 p'],
-    ['v ok','0.50','최고 ML AUC'],
+    ['v ok',Math.max(...d.ml.models.map(m=>m.AUC)).toFixed(2),'최고 ML AUC'],
     ['v no','NO','0.8 이긴 전략?']
   ].map(([c,v,l])=>`<div class="tile"><div class="${c}">${v}</div><div class="l">${l}</div></div>`).join('');
 
@@ -519,26 +521,38 @@ function render(d){
   // 04 tests
   $('#battery tbody').innerHTML=d.tests.battery.map(r=>{const rej=r['reject_H0 (α=.05)'];
     return `<tr><td>${r.test}</td><td class="p">${r.statistic}</td><td class="p">${r.p_value}</td>
-      <td><span class="pill ${rej?'yes':'no'}">${rej?'경계적':'무작위'}</span></td></tr>`;}).join('');
+      <td><span class="pill ${rej?'yes':'no'}">${rej?'구조 발견':'무작위'}</span></td></tr>`;}).join('');
   $('#chi-p').textContent=chi.p.toFixed(3);
   mk('#c-resid',{type:'bar',data:{labels:e.freq_numbers,datasets:[{data:d.tests.residuals,
       backgroundColor:d.tests.residuals.map(v=>Math.abs(v)>1.96?S6:S1),borderRadius:2,barPercentage:.92}]},
     options:{...baseOpts(),plugins:{...baseOpts().plugins,ref:{lines:[{axis:'y',value:1.96,color:MUT},{axis:'y',value:-1.96,color:MUT}]}},
       scales:{...baseOpts().scales,x:{...baseOpts().scales.x,ticks:{color:MUT,font:{size:9},callback:(v,i)=>(i+1)%5===0?i+1:''}}}}});
   const conf=d.tests.acf_conf;
-  mk('#c-acf',{type:'bar',data:{labels:d.tests.acf.map((_,i)=>i+1),datasets:[{data:d.tests.acf,backgroundColor:S1,borderRadius:2}]},
+  const acfCross=d.tests.acf.map((v,i)=>Math.abs(v)>conf?(i+1):0).filter(Boolean);
+  $('#acf-cap').innerHTML='회색 밴드 = 95% 백색잡음. '+(acfCross.length
+    ? `<b>lag ${acfCross.join('·')}이(가) 밴드 초과</b> — 약한 자기상관(효과 미미, 예측엔 활용 불가)`
+    : '뚫는 신호 없음');
+  mk('#c-acf',{type:'bar',data:{labels:d.tests.acf.map((_,i)=>i+1),datasets:[{data:d.tests.acf,backgroundColor:d.tests.acf.map(v=>Math.abs(v)>conf?S6:S1),borderRadius:2}]},
     options:{...baseOpts(),plugins:{...baseOpts().plugins,ref:{lines:[{axis:'y',value:conf,color:MUT},{axis:'y',value:-conf,color:MUT}]}}}});
 
   // 05 randomness
   const rb=d.randomness;
   $('#rand-table tbody').innerHTML=rb.battery.map(r=>`<tr><td>${r.test}</td><td class="p">${r.statistic}</td>
     <td class="p">${r.p_value}</td><td><span class="pill ${r.random_consistent?'ok':'bad'}">${r.random_consistent?'✓ 부합':'✗ 불부합'}</span></td></tr>`).join('');
-  $('#rand-note').innerHTML=`<b>${rb.pass_count}/${rb.total} 검정 통과.</b> 유일하게 걸린 스펙트럼 검정은 무의미한 미세 봉우리로,
-    04번의 lag-10 자기상관과 동일한 현상(푸리에 쌍대)입니다 — 예측에 쓸 수 없습니다.`;
+  const spec=rb.battery.find(r=>r.test.includes('스펙트럼'));
+  $('#rand-note').innerHTML=`<b>${rb.pass_count}/${rb.total} 검정 통과.</b> 걸린 스펙트럼 검정(p=${spec.p_value}, ${spec.p_value<0.05/6?'Bonferroni 0.05/6 통과':'단일검정 유의'})은
+    04번 합계의 lag 9·10 자기상관과 같은 약한 시간 구조입니다 — <b>통계적으로 유의하나</b> 봉우리가 전체 파워의 ${(spec.statistic*100).toFixed(1)}%에 불과해 <b>예측엔 활용 불가</b>합니다.`;
 
   // 06 bayesian
   const by=d.bayesian;
   $('#bayes-count').textContent=by.contains_fair_count;
+  const _fair=by.fair_theta;
+  const _below=by.numbers.filter((n,i)=>!by.contains_fair[i] && by.ci_hi[i]<_fair);
+  const _above=by.numbers.filter((n,i)=>!by.contains_fair[i] && by.ci_lo[i]>_fair);
+  let _bmsg='';
+  if(_below.length) _bmsg+=`<b>${_below.join('·')}번</b>은 공정값 아래(관측<기대)`;
+  if(_above.length) _bmsg+=`${_below.length?', ':''}<b>${_above.join('·')}번</b>은 공정값 위(관측>기대)`;
+  $('#bayes-out').innerHTML=_bmsg?` — ${_bmsg}로 구간이 공정값을 벗어남 (45개 중 우연히 ~2개 예상 → 우연 수준)`:'';
   const bidx=by.numbers.map((_,i)=>i);
   mk('#c-bayes',{data:{labels:by.numbers,datasets:[
       {type:'bar',data:by.ci_lo.map((lo,i)=>[lo,by.ci_hi[i]]),backgroundColor:'rgba(137,135,129,.28)',borderSkipped:false,borderRadius:2,barPercentage:.55},

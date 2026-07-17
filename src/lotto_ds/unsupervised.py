@@ -49,7 +49,9 @@ def pca_analysis(draws: pd.DataFrame | None = None) -> dict:
         "cumulative": np.cumsum(pca.explained_variance_ratio_).tolist(),
         "coords_2d": coords,
         "n_features": len(FEATURE_COLS),
-        "flatness_note": "no dominant component ⇒ variance spread across dims ⇒ unstructured",
+        "flatness_note": "top-2 components ≈ 51% of variance, but that reflects correlated engineered "
+                         "features (e.g. sum↔high_count r≈0.88), not latent structure — PCA carries "
+                         "no randomness verdict here; the silhouette benchmark is the real test",
     }
 
 
@@ -86,5 +88,5 @@ def summary(draws: pd.DataFrame | None = None) -> dict:
         "kmeans_best_silhouette": round(km["best_score"], 3),
         "kmeans_best_k": km["best_k"],
         "dbscan_clusters": db["n_clusters"],
-        "verdict": "실루엣 ≪0.5 · PCA 평탄(최대 성분 27%) — 활용할 만한 군집 구조 없음",
+        "verdict": "최고 실루엣 ≪0.5 (균등 난수 대조군과 구별 안 됨) — 활용할 만한 군집 구조 없음",
     }

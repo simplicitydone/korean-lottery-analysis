@@ -105,8 +105,20 @@ class BacktestResult:
         }
 
 
-def _bootstrap_ci(x: np.ndarray, rng: np.random.Generator, n: int = 2000) -> tuple[float, float]:
+def _bootstrap_ci(x: np.ndarray, rng: np.random.Generator, n: int = 10000) -> tuple[float, float]:
     means = rng.choice(x, size=(n, len(x)), replace=True).mean(axis=1)
+    return float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))
+
+
+def _cluster_bootstrap_ci(hit_matrix: np.ndarray, rng: np.random.Generator,
+                          n: int = 10000) -> tuple[float, float]:
+    """95% CI for the per-ticket mean, resampling whole DRAWS (rows) rather than tickets. The
+    `tickets_per_draw` tickets in one draw share the same winning set and weight vector, so they are
+    positively correlated; an i.i.d. ticket bootstrap understates the SE (design effect up to ~1.3
+    for probability-concentrating strategies). The draw is the independent unit."""
+    draw_means = hit_matrix.mean(axis=1)                    # one value per draw (the cluster unit)
+    idx = rng.integers(0, len(draw_means), size=(n, len(draw_means)))
+    means = draw_means[idx].mean(axis=1)
     return float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))
 
 
@@ -125,27 +137,25 @@ def run_backtest(
     weight_fn = STRATEGIES[strategy]
     rng = np.random.default_rng(seed)
 
-    ticket_hits, best_hits = [], []
+    per_draw_hits, best_hits = [], []
     start_idx = int((draws["draw_no"] < start_draw).sum())
     for t in range(start_idx, len(mat)):
         prior = mat[:t]                      # strictly prior — no leakage
         actual = set(mat[t].tolist())
         w = weight_fn(prior)
-        draw_hits = []
-        for _ in range(tickets_per_draw):
-            ticket = _sample_ticket(w, rng)
-            draw_hits.append(len(actual & set(ticket.tolist())))
-        ticket_hits.extend(draw_hits)
+        draw_hits = [len(actual & set(_sample_ticket(w, rng).tolist()))
+                     for _ in range(tickets_per_draw)]
+        per_draw_hits.append(draw_hits)
         best_hits.append(max(draw_hits))
 
-    ticket_hits = np.array(ticket_hits, dtype=float)
+    hit_matrix = np.array(per_draw_hits, dtype=float)        # (n_draws, tickets_per_draw)
     best_hits = np.array(best_hits, dtype=float)
     return BacktestResult(
         strategy=strategy,
         n_draws=len(best_hits),
         tickets_per_draw=tickets_per_draw,
-        mean_hits_per_ticket=float(ticket_hits.mean()),
-        ci95_ticket=_bootstrap_ci(ticket_hits, rng),
+        mean_hits_per_ticket=float(hit_matrix.mean()),
+        ci95_ticket=_cluster_bootstrap_ci(hit_matrix, rng),
         mean_best_of_k=float(best_hits.mean()),
         ci95_best=_bootstrap_ci(best_hits, rng),
     )
@@ -180,5 +190,6 @@ def load_legacy_archive(raw_db=RAW_DB) -> pd.DataFrame:
         for name, payload in methods.items():
             # older rows use "hits"; recent lotto rows were backfilled with "hits_1st"
             for h in payload.get("hits") or payload.get("hits_1st") or []:
-                records.append({"method": name.split(". ", 1)[-1], "hits": h})
+                records.append({"draw_no": int(row["draw_no"]),
+                                "method": name.split(". ", 1)[-1], "hits": h})
     return pd.DataFrame(records)

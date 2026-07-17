@@ -120,7 +120,11 @@ def build_report() -> dict:
     chi = st.chi_square_number_uniformity(draws)
     obs = pd.Series(draws[cleaning.WIN_COLS].to_numpy(int).ravel()).value_counts()
     obs = obs.reindex(range(1, 46), fill_value=0).sort_index()
-    resid = ((obs - expected) / np.sqrt(expected)).round(3)
+    # Standardized (adjusted) residual: under the without-replacement null each count is
+    # Binomial(N, 6/45), so the correct SD is √(E·(1−6/45)), not √E. Plain Pearson √E understates
+    # |z| by ~7% and compresses exceedances toward the ±1.96 band.
+    p_fair = 6 / 45
+    resid = ((obs - expected) / np.sqrt(expected * (1 - p_fair))).round(3)
     acf_vals = acf(sums, nlags=15, fft=False)[1:]
     battery = st.run_all().to_dict(orient="records")
 
@@ -135,7 +139,11 @@ def build_report() -> dict:
             "ci_hi": round(r.ci95_ticket[1], 4),
         })
     archive = bt.load_legacy_archive()
-    method_stats = archive.groupby("method")["hits"].agg(["mean", "sem"]).reset_index()
+    # Cluster by draw: each draw's tickets share the same winning set, so the draw — not the
+    # ticket — is the independent unit. Averaging within a draw before the SE stops the CI from
+    # being ~25% too narrow (same clustering fix as backtest._cluster_bootstrap_ci).
+    per_draw = archive.groupby(["method", "draw_no"])["hits"].mean().reset_index()
+    method_stats = per_draw.groupby("method")["hits"].agg(["mean", "sem"]).reset_index()
     legacy_rows = [
         {
             "method": row["method"],

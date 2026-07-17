@@ -127,7 +127,7 @@ def topk_backtest(panel: pd.DataFrame | None = None, split_frac: float = 0.7, k:
         hits.append(int(topk["appeared_next"].sum()))
     hits = np.array(hits, dtype=float)
     rng = np.random.default_rng(seed)
-    boot = rng.choice(hits, size=(2000, len(hits)), replace=True).mean(axis=1)
+    boot = rng.choice(hits, size=(10000, len(hits)), replace=True).mean(axis=1)
     return {
         "strategy": "ML top-6 (gradient boosting)",
         "mean": float(hits.mean()),

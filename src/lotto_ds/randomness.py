@@ -27,7 +27,7 @@ from statsmodels.tsa.stattools import adfuller
 
 from . import LOTTO_NUMBER_MAX
 from .cleaning import WIN_COLS, load_clean
-from .stats_tests import ALPHA, TestResult
+from .stats_tests import TestResult
 
 # Tests whose *random-consistent* outcome is a LOW p-value (reject their null). Everything else is
 # random-consistent when p is HIGH (fail to reject).
@@ -79,16 +79,32 @@ def ks_drift(draws: pd.DataFrame | None = None) -> TestResult:
 def anderson_darling_sum(draws: pd.DataFrame | None = None) -> TestResult:
     """Anderson–Darling normality of the draw-sum series (CLT predicts ~Normal).
 
-    Returns A²; p is taken from the statistic vs its 5% critical value (reject ⇒ not Normal). A fair
-    lottery should NOT reject.
+    Returns A² with a real p-value via the Stephens (1974) small-sample formula (reject ⇒ not
+    Normal). A fair lottery should NOT reject.
     """
     if draws is None:
         draws = load_clean("draws")
-    res = stats.anderson(_sums(draws), dist="norm")
-    crit_5 = float(res.critical_values[2])          # [15,10,5,2.5,1]% → index 2 is 5%
-    pseudo_p = ALPHA / 2 if res.statistic > crit_5 else 0.5
-    return TestResult("Anderson–Darling 정규성 (sum normality)", float(res.statistic), pseudo_p,
-                      detail=f"A²={res.statistic:.3f}, 5% 임계값={crit_5:.3f}")
+    x = np.sort(_sums(draws))
+    n = len(x)
+    # A² computed directly (matches scipy.stats.anderson to 1e-6) so we avoid scipy's deprecated
+    # `.critical_values` (removed in SciPy 1.19) and can report a real p, not a 0.025/0.5 placeholder.
+    z = (x - x.mean()) / x.std(ddof=1)
+    cdf = np.clip(stats.norm.cdf(z), 1e-12, 1 - 1e-12)
+    i = np.arange(1, n + 1)
+    a2 = float(-n - np.sum((2 * i - 1) * (np.log(cdf) + np.log(1 - cdf[::-1]))) / n)
+    a2s = a2 * (1 + 0.75 / n + 2.25 / n**2)      # Stephens (1974) small-sample correction
+    if a2s < 0.2:
+        p = 1 - np.exp(-13.436 + 101.14 * a2s - 223.73 * a2s**2)
+    elif a2s < 0.34:
+        p = 1 - np.exp(-8.318 + 42.796 * a2s - 59.938 * a2s**2)
+    elif a2s < 0.6:
+        p = np.exp(0.9177 - 4.279 * a2s - 1.38 * a2s**2)
+    elif a2s < 10:
+        p = np.exp(1.2937 - 5.709 * a2s + 0.0186 * a2s**2)
+    else:
+        p = 0.0
+    return TestResult("Anderson–Darling 정규성 (sum normality)", a2, float(p),
+                      detail=f"A²={a2:.3f}, p={p:.3f} (Stephens 1974)")
 
 
 def adf_stationarity(draws: pd.DataFrame | None = None) -> TestResult:
@@ -146,7 +162,7 @@ def run_battery(draws: pd.DataFrame | None = None) -> pd.DataFrame:
         draws = load_clean("draws")
     tests = [
         shannon_entropy(draws), ks_drift(draws), anderson_darling_sum(draws),
-        adf_stationarity(draws), serial_parity(draws), spectral_permutation(draws),
+        adf_stationarity(draws), serial_parity(draws), spectral_permutation(draws, n_perm=10000),
     ]
     rows = []
     for t in tests:

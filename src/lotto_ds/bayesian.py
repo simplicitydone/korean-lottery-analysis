@@ -10,8 +10,9 @@ Model (per number i, across N draws):
     prior     θ_i ~ Beta(α, β)                   (α=β chosen so the prior mean = 6/45)
     posterior θ_i ~ Beta(α + k_i, β + N − k_i)   (conjugacy)
 
-The null "fair" value is θ = 6/45 ≈ 0.1333. The teaching payoff: every number's 95% **credible
-interval** comfortably contains 6/45, and the posterior means are *shrunk* from the noisy empirical
+The null "fair" value is θ = 6/45 ≈ 0.1333. The teaching payoff: 44 of the 45 numbers' 95%
+**credible intervals** contain 6/45 — number 9 falls just below, which is expected since ~2 of 45
+intervals miss by chance (multiplicity). The posterior means are *shrunk* from the noisy empirical
 rates toward the prior — visually demystifying "regression to the mean" and why hot/cold streaks are
 mirages.
 """
