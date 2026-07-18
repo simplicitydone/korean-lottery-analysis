@@ -10,3 +10,11 @@ data/clean/
 
 # local session state
 .claude/
+
+# internal dev-process notes — kept local, not for the public repo
+checklist.md
+context-notes.md
+
+# raw-source archive + stale deploy example — kept local
+lotto_history/
+lottery-hub.service.example
