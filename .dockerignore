@@ -8,3 +8,8 @@ __pycache__
 .env
 scratch
 lotto_history
+
+# internal dev-process notes + stale deploy example — never needed in the runtime image
+checklist.md
+context-notes.md
+lottery-hub.service.example
